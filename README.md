@@ -2,7 +2,7 @@
 
 **Bridge the gap between your browser and your IDE.** 
 
-AI Bridge allows you to instantly send webpage content, code snippets, and context to your AI coding assistants (GitHub Copilot, Cursor, etc.) with a simple **Alt + Click**.
+AI Bridge allows you to instantly send webpage content, code snippets, and context to your AI coding assistants (Vs code) with a simple **Alt + Click**.
 
 ![AI Bridge Icon](vscode-extension/icon.png)
 
@@ -11,8 +11,7 @@ AI Bridge allows you to instantly send webpage content, code snippets, and conte
 ## ✨ Features
 
 - **🚀 Instant Context**: Alt+Click on any element to capture its HTML, selected text, and page info.
-- **💬 VS Code Automation**: Seamlessly opens chat and pastes your prompt into GitHub Copilot/Cursor.
-- **📋 Universal Copy**: For other IDEs, a dedicated "Copy" button captures enriched context (HTML + Text) formatted for any AI.
+- **💬 VS Code Automation**: Seamlessly opens chat and pastes your prompt into VS Code.
 - **🔒 Security First**: 
     - 100% Localhost-only communication.
     - No data leaves your machine.
@@ -73,6 +72,6 @@ If the server fails to start, another process might be using ports 3000/3001.
 ---
 
 ## 📄 License & Author
-- **Author**: Yogesh Telange
+- **GitHub**: https://github.com/yogesh-developer/ai-bridge
 - **Email**: yogesh.x.telange@gmail.com
 - **License**: MIT
