@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+.npm/
+
+# Build artifacts
+*.vsix
+*.zip
+dist/
+out/
+release/
+
+# macOS system files
+.DS_Store
+
+# Local configuration
+.env
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Brain/Artifacts (AI workspace)
+.gemini/

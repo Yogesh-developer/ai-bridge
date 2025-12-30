@@ -1,0 +1,109 @@
+{
+  "name": "ai-bridge-vscode",
+  "displayName": "AI Bridge",
+  "description": "Connect web browsers to VS Code via Alt+Click. Embedded server auto-starts - no separate installation needed!",
+  "icon": "icon.png",
+  "version": "2.0.0",
+  "publisher": "yogesh-telange",
+  "author": {
+    "name": "Yogesh Telange",
+    "email": "yogesh.x.telange@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yogesh-telange/ai-bridge-vscode"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ai-bridge.test",
+        "title": "AI Bridge: Test Connection"
+      },
+      {
+        "command": "ai-bridge.reconnect",
+        "title": "AI Bridge: Reconnect to Server"
+      },
+      {
+        "command": "ai-bridge.showLogs",
+        "title": "AI Bridge: Show Logs"
+      }
+    ],
+    "configuration": {
+      "title": "AI Bridge Configuration",
+      "properties": {
+        "ai-bridge.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "Bridge server HTTP URL (auto-managed by extension)",
+          "scope": "machine"
+        },
+        "ai-bridge.wsUrl": {
+          "type": "string",
+          "default": "ws://localhost:3001",
+          "description": "Bridge server WebSocket URL (auto-managed by extension)",
+          "scope": "machine"
+        },
+        "ai-bridge.autoSend": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically send prompt to AI chat",
+          "scope": "resource"
+        },
+        "ai-bridge.logLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "Logging verbosity level (debug=verbose, error=minimal)",
+          "scope": "machine"
+        },
+        "ai-bridge.retryAttempts": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Number of retry attempts for failed requests",
+          "scope": "machine"
+        },
+        "ai-bridge.requestTimeout": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 1000,
+          "maximum": 30000,
+          "description": "Request timeout in milliseconds",
+          "scope": "machine"
+        },
+        "ai-bridge.enableSecurity": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable security checks (DO NOT DISABLE IN PRODUCTION)",
+          "scope": "machine"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.6",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "@vscode/vsce": "^3.7.1",
+    "electron-rebuild": "^3.2.9"
+  }
+}

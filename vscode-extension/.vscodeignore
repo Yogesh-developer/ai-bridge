@@ -1,0 +1,17 @@
+# Ignore everything except what we explicitly include
+*
+
+# Include server directory and its contents
+!server/
+!server/**
+
+# Include extension files
+!extension.js
+!package.json
+!README.md
+!LICENSE
+!CHANGELOG.md
+!icon.png
+
+# Exclude node_modules from server
+server/node_modules/
