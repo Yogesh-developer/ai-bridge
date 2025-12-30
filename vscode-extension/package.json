@@ -1,10 +1,10 @@
 {
   "name": "ai-bridge-vscode",
-  "displayName": "AI Bridge",
+  "displayName": "AI Bridge - Web to VS Code",
   "description": "Connect web browsers to VS Code via Alt+Click. Embedded server auto-starts - no separate installation needed!",
   "icon": "icon.png",
   "version": "1.0.0",
-  "publisher": "yogesh-telange",
+  "publisher": "YogeshTelange",
   "author": {
     "name": "Yogesh Telange",
     "email": "yogesh.x.telange@gmail.com"
@@ -17,8 +17,11 @@
     "vscode": "^1.80.0"
   },
   "categories": [
+    "Programming Languages",
     "Other"
   ],
+  "license": "MIT",
+  "homepage": "https://github.com/yogesh-developer/ai-bridge",
   "activationEvents": [
     "onStartupFinished"
   ],
