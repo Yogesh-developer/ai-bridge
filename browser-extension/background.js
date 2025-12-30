@@ -15,7 +15,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true; // Keep channel open for async response
   }
-  
+
   if (request.action === 'checkServerStatus') {
     checkServerStatus()
       .then(status => sendResponse({ status }))
@@ -30,7 +30,7 @@ async function handleSendToAI(data) {
     if (!data || !data.prompt) {
       throw new Error('Invalid prompt data');
     }
-    
+
     // Check if server is running with timeout
     const response = await Promise.race([
       fetch(`${BRIDGE_SERVER_URL}/api/send`, {
@@ -40,11 +40,11 @@ async function handleSendToAI(data) {
         },
         body: JSON.stringify(data),
       }),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Server request timeout')), 5000)
       )
     ]);
-    
+
     if (!response.ok) {
       // Handle specific error codes
       if (response.status === 503) {
@@ -56,33 +56,33 @@ async function handleSendToAI(data) {
         throw new Error(`Server error: ${response.status}`);
       }
     }
-    
+
     const result = await response.json();
     serverStatus = 'connected';
     updateBadge('✓', '#4caf50');
-    
+
     return {
       success: true,
       data: result
     };
-    
+
   } catch (error) {
     console.error('Failed to send to AI:', error);
     serverStatus = 'disconnected';
     updateBadge('✗', '#f44336');
-    
+
     // Provide helpful error messages
     let errorMsg = error.message;
-    
+
     if (error.message.includes('Failed to fetch')) {
-      errorMsg = 'Bridge server not running. Start it: cd bridge-server && npm start';
+      errorMsg = 'Bridge server not running. Please ensure the AI Bridge VS Code extension is active.';
     } else if (error.message.includes('timeout')) {
       errorMsg = 'Server timeout. Make sure the bridge server is running.';
     } else if (error.message.includes('VS Code extension')) {
       // Already formatted message
       errorMsg = error.message;
     }
-    
+
     return {
       success: false,
       error: errorMsg
@@ -95,7 +95,7 @@ async function checkServerStatus() {
     const response = await fetch(`${BRIDGE_SERVER_URL}/api/health`, {
       method: 'GET',
     });
-    
+
     if (response.ok) {
       serverStatus = 'connected';
       updateBadge('✓', '#4caf50');
@@ -125,17 +125,17 @@ chrome.action.onClicked.addListener((tab) => {
     if (status === 'connected') {
       chrome.tabs.sendMessage(tab.id, {
         action: 'showNotification',
-        message: '✅ AI Bridge is connected and ready!',
+        message: 'AI Bridge is connected and ready',
         type: 'success'
       });
     } else {
       chrome.tabs.sendMessage(tab.id, {
         action: 'showNotification',
-        message: '❌ Bridge server not running. Please start it first.',
+        message: 'Bridge server not running. Ensure VS Code extension is active.',
         type: 'error'
       });
     }
   });
 });
 
-console.log('🚀 AI Bridge background service started');
+console.log('AI Bridge background service started');

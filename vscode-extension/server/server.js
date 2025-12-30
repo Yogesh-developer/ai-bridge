@@ -615,19 +615,17 @@ app.use((err, req, res, next) => {
 // ============================================================================
 
 const httpServer = app.listen(PORT, 'localhost', () => {
+  console.log('-----------------------------------------------------------------');
+  console.log('        AI Bridge Server v1.0.0 - PRODUCTION READY              ');
+  console.log('-----------------------------------------------------------------');
   const banner = `
-╔════════════════════════════════════════════════════════════════╗
-║       🚀  AI Bridge Server v1.0.0 - PRODUCTION READY          ║
-║                                                                ║
-║  Author: Yogesh Telange <yogesh.x.telange@gmail.gmail>       ║
-║  License: MIT                                                  ║
-║                                                                ║
-║  Security Mode: ENABLED (localhost-only)                      ║
-║  Rate Limiting: ENABLED (10 req/sec)                          ║
-║  Payload Limit: 1MB                                           ║
-║  Request Timeout: 30s                                         ║
-║                                                                ║
-╚════════════════════════════════════════════════════════════════╝
+  Author: Yogesh Telange <yogesh.x.telange@gmail.gmail>
+  License: MIT
+
+  Security Mode: ENABLED (localhost-only)
+  Rate Limiting: ENABLED (10 req/sec)
+  Payload Limit: 1MB
+  Request Timeout: 30s
   `;
   console.log(banner);
   Logger.info('SERVER', 'Server started successfully', {
@@ -667,7 +665,7 @@ process.on('SIGINT', () => {
   // Close HTTP server
   httpServer.close(() => {
     Logger.info('SERVER', 'HTTP server closed');
-    console.log('✅ Server shut down successfully\n');
+    console.log('Server shut down successfully\n');
     process.exit(0);
   });
 

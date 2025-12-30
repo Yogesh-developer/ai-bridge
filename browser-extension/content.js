@@ -201,18 +201,7 @@ document.addEventListener('click', (e) => {
     const currentUrl = window.location.href;
     if (!SecurityValidator.isLocalUrl(currentUrl)) {
       Logger.warn('Security block: Not a localhost URL', { url: currentUrl });
-      alert(
-        '🔒 AI Bridge Security\n\n' +
-        'For your privacy and security, AI Bridge only works on localhost and local development sites.\n\n' +
-        'Allowed:\n' +
-        '✅ http://localhost:3000\n' +
-        '✅ http://127.0.0.1:8080\n' +
-        '✅ http://myapp.local\n' +
-        '✅ http://192.168.1.100\n\n' +
-        'Blocked:\n' +
-        '❌ Public websites (stackoverflow.com, google.com, etc.)\n\n' +
-        'This prevents accidental data leakage from sensitive websites.'
-      );
+      SecurityValidator.showSecurityAlert();
       return;
     }
 
@@ -283,7 +272,7 @@ function showInputBox(x, y) {
   inputBox.className = 'ai-bridge-input-container';
   inputBox.innerHTML = `
     <div class="ai-bridge-header">
-      <span>✨ AI Bridge v1.0.0</span>
+      <span>AI Bridge v1.0.0</span>
       <div class="ai-bridge-header-actions">
         <button class="ai-bridge-copy" title="Copy to clipboard">
           <svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>
@@ -451,7 +440,7 @@ async function loadVSCodeInstances() {
       Logger.info('VS Code instances loaded', { count: clients.length });
 
       if (clients.length === 0) {
-        selector.innerHTML = '<option value="">❌ No VS Code instances connected</option>';
+        selector.innerHTML = '<option value="">No VS Code instances connected</option>';
         sectionDiv.style.display = 'none';
         return;
       }
@@ -492,7 +481,7 @@ async function loadVSCodeInstances() {
     Logger.error('Failed to load VS Code instances', { error: error.message });
     const selector = inputBox?.querySelector('.ai-bridge-client-selector');
     if (selector) {
-      selector.innerHTML = '<option value="">⚠️ Error loading instances. Check server.</option>';
+      selector.innerHTML = '<option value="">Error loading instances. Check server.</option>';
     }
   }
 }
@@ -527,11 +516,11 @@ You receive webpage context and a user instruction. Use the context,
 but do not assume access to the full codebase.
 
 Primary goals (in order):
-1) If the user asks for a CHANGE → produce the FINAL UPDATED CODE.
+1) If the user asks for a CHANGE: produce the FINAL UPDATED CODE.
 2) Prefer returning changes as a unified diff patch when possible.
 3) Suggest the most likely file or folder based on URL + element.
-4) If the user only asks a QUESTION → answer briefly.
-5) If something is unclear → ask ONE short clarifying question.
+4) If the user only asks a QUESTION: answer briefly.
+5) If something is unclear: ask ONE short clarifying question.
 
 Show the final result first. Be precise and minimal.
 
@@ -573,7 +562,7 @@ async function sendToAI() {
   // Rate limiting
   const now = Date.now();
   if (now - lastSendTime < RATE_LIMIT_MS) {
-    statusDiv.textContent = '⚠️ Please wait before sending again';
+    statusDiv.textContent = 'Please wait before sending again';
     statusDiv.className = 'ai-bridge-status error';
     return;
   }
@@ -583,21 +572,21 @@ async function sendToAI() {
   try {
     SecurityValidator.validatePrompt(prompt);
   } catch (error) {
-    statusDiv.textContent = `⚠️ ${error.message}`;
+    statusDiv.textContent = `Error: ${error.message}`;
     statusDiv.className = 'ai-bridge-status error';
     Logger.warn('Validation failed', { error: error.message });
     return;
   }
 
   if (!selectedClientId) {
-    statusDiv.textContent = '⚠️ Please select a VS Code instance';
+    statusDiv.textContent = 'Please select a VS Code instance';
     statusDiv.className = 'ai-bridge-status error';
     return;
   }
 
   // Show loading
   sendBtn.disabled = true;
-  statusDiv.textContent = '📤 Sending to VS Code...';
+  statusDiv.textContent = 'Sending to VS Code...';
   statusDiv.className = 'ai-bridge-status loading';
 
   try {
@@ -646,7 +635,7 @@ async function sendToAI() {
       }
     ).then(result => {
       if (result.success) {
-        statusDiv.textContent = '✅ Sent to VS Code!';
+        statusDiv.textContent = 'Sent to VS Code!';
         statusDiv.className = 'ai-bridge-status success';
         Logger.info('Prompt sent successfully', { clientId: selectedClientId });
 
@@ -658,7 +647,7 @@ async function sendToAI() {
 
   } catch (error) {
     Logger.error('Send failed', { error: error.message });
-    statusDiv.textContent = `❌ Error: ${error.message}`;
+    statusDiv.textContent = `Error: ${error.message}`;
     statusDiv.className = 'ai-bridge-status error';
     sendBtn.disabled = false;
   }
@@ -715,7 +704,7 @@ async function copyToClipboard() {
 
     if (!textToCopy) {
       if (statusDiv) {
-        statusDiv.textContent = '⚠️ Nothing to copy';
+        statusDiv.textContent = 'Nothing to copy';
         statusDiv.className = 'ai-bridge-status error';
       }
       return;
@@ -724,7 +713,7 @@ async function copyToClipboard() {
     await navigator.clipboard.writeText(textToCopy);
 
     if (statusDiv) {
-      statusDiv.textContent = '📋 Copied with context!';
+      statusDiv.textContent = 'Copied with context!';
       statusDiv.className = 'ai-bridge-status success';
     }
 
@@ -741,7 +730,7 @@ async function copyToClipboard() {
   } catch (err) {
     Logger.error('Copy failed', { error: err.message });
     if (statusDiv) {
-      statusDiv.textContent = '❌ Failed to copy';
+      statusDiv.textContent = 'Failed to copy';
       statusDiv.className = 'ai-bridge-status error';
     }
   }

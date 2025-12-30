@@ -1,102 +1,57 @@
-# AI Bridge - Web to IDE
+# AI Bridge - Web to VS Code
 
-**Connect your web browser directly to VS Code with Alt+Click!**
+Connect your web browser directly to VS Code with Alt+Click.
 
-## 🚀 What's New in v2.0.0
+## Overview
 
-✨ **Embedded Server** - No separate server installation needed! The bridge server now starts automatically with the extension.
+AI Bridge is a productivity tool designed to streamline the workflow between web research and AI-assisted coding. It eliminates the friction of manual copying and pasting by establishing a direct link between your browser and the VS Code AI chat interface.
 
-## Features
+## Highlights in v1.0.0
 
-- **Alt+Click Activation**: Click any element on a webpage while holding Alt
-- **Instant Transfer**: Selected content appears in your AI chat immediately
-- **Context Aware**: Captures text, element info, and page URL
-- **Secure**: Localhost-only, no external servers
-- **Multi-IDE**: Works with GitHub Copilot, Cursor, and Windsurf
-- **Auto-Start Server**: Embedded server starts automatically - no manual setup!
-
-## Requirements
-
-1. **Browser Extension**: Install from Chrome Web Store
-   - Search "AI Bridge" in Chrome Web Store
-   - Click "Add to Chrome"
-
-2. **Node.js**: The extension uses VS Code's built-in Node.js runtime
+- **Embedded Bridge Server**: The server is now fully integrated into the extension and manages its own lifecycle. It starts and stops automatically with VS Code.
+- **Improved Automation**: Optimized discovery of native VS Code AI extensions, including GitHub Copilot, for seamless prompt delivery.
+- **Context Preservation**: Automatically captures HTML structure, selected text, and page URLs to provide high-quality context for AI prompts.
+- **Security and Privacy**: All data processing is strictly local. No information is transmitted to external servers.
 
 ## Installation
 
-1. Install this VS Code extension
-2. Install the browser extension from Chrome Web Store
-3. That's it! The server starts automatically.
+1. Install this VS Code extension.
+2. Install the companion browser extension from the Chrome Web Store or load it as an unpacked extension.
+3. The server will start automatically upon extension activation.
 
 ## Usage
 
-1. Open any webpage
-2. Alt+Click on text or elements
-3. Type your prompt
-4. Send to AI - prompt appears in VS Code!
+1. Open any webpage.
+2. Hold the Alt key and click on any text or element.
+3. Type your prompt in the dialog.
+4. Send the content directly to your VS Code AI chat.
 
-## How It Works
+## Settings
 
-```
-Browser (Alt+Click) → Bridge Server (auto-started) → VS Code Extension → AI Chat
-```
+Configuration options are available under `Preferences > Settings > AI Bridge`:
 
-The bridge server runs automatically in the background when VS Code starts. No manual server management needed!
-
-## Configuration
-
-Access settings via: `Preferences > Settings > AI Bridge`
-
-- `ai-bridge.logLevel`: Logging verbosity (info/debug/warn/error)
-- `ai-bridge.serverUrl`: Bridge server URL (auto-managed)
-- `ai-bridge.wsUrl`: WebSocket URL (auto-managed)
+- `ai-bridge.logLevel`: Adjust the detail level of the internal logs.
+- `ai-bridge.serverUrl`: The address for the local bridge server (managed automatically).
+- `ai-bridge.wsUrl`: The address for the local WebSocket connection (managed automatically).
 
 ## Troubleshooting
 
-**Extension not connecting?**
-- Check Output panel: View → Output → AI Bridge: Extension
-- Check server logs: View → Output → AI Bridge: Server
-- Try reloading VS Code: Cmd+Shift+P → "Developer: Reload Window"
-
-**Alt+Click not working?**
-- Ensure browser extension is installed and enabled
-- Refresh the webpage
-- Check browser console for errors
-
-**Server won't start?**
-- Check if port 3000 is already in use
-- View server logs in Output panel
-- Try reloading VS Code
+- **Connection issues**: Verify the bridge status in the bottom right of the status bar. If it shows an error, check the "AI Bridge: Server" output channel.
+- **Activation failures**: Ensure that ports 3000 and 3001 are not being used by other applications. Use the `kill-servers.sh` script if necessary.
+- **Alt+Click behavior**: If the dialog does not appear, refresh the webpage or check if the browser extension is enabled.
 
 ## Privacy
 
-All data processing happens locally on your machine. No information is sent to external servers.
+Data processing is strictly limited to the local machine. No information is transmitted over the internet or collected by the extension author.
 
-## Commands
+## Lifecycle and Commands
 
-- `AI Bridge: Test Connection` - Test if everything is working
-- `AI Bridge: Reconnect to Server` - Force reconnect
-- `AI Bridge: Show Logs` - View extension logs
-
-## Support
-
-- GitHub: https://github.com/yogesh-telange/ai-bridge
-- Email: yogesh.x.telange@gmail.com
-- License: MIT
-
-## Changelog
-
-### 2.0.0 (Latest)
-- ✨ Embedded bridge server - auto-starts with extension
-- ✨ No separate server installation needed
-- ✨ Simplified user experience
-- ✨ Automatic server lifecycle management
-
-### 1.0.0
-- Initial release
-- Separate bridge server required
+- `AI Bridge: Test Connection`: Validate the current system state.
+- `AI Bridge: Reconnect to Server`: Manually reset the bridge.
+- `AI Bridge: Show Logs`: View detailed extension activity.
 
 ---
 
-**Made with ❤️ by Yogesh Telange**
+**Author**: Yogesh Telange  
+**GitHub**: [AI Bridge](https://github.com/yogesh-developer/ai-bridge)  
+**License**: MIT

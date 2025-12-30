@@ -3,7 +3,7 @@
 # AI Bridge System Verification Script
 # This script checks if all components are running correctly
 
-echo "🔍 AI Bridge System Verification"
+echo "AI Bridge System Verification"
 echo "=================================="
 echo ""
 
@@ -19,10 +19,10 @@ issues=0
 echo "Checking Bridge Server HTTP (port 3000)..."
 if curl -s http://localhost:3000/api/health > /dev/null 2>&1; then
   response=$(curl -s http://localhost:3000/api/health)
-  echo -e "${GREEN}✅ HTTP Server: Running${NC}"
+  echo -e "${GREEN}HTTP Server: Running${NC}"
   echo "   Response: $response"
 else
-  echo -e "${RED}❌ HTTP Server: NOT responding${NC}"
+  echo -e "${RED}HTTP Server: NOT responding${NC}"
   echo "   Solution: cd bridge-server && npm start"
   ((issues++))
 fi

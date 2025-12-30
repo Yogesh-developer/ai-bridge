@@ -3,7 +3,7 @@
   "displayName": "AI Bridge",
   "description": "Connect web browsers to VS Code via Alt+Click. Embedded server auto-starts - no separate installation needed!",
   "icon": "icon.png",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "publisher": "yogesh-telange",
   "author": {
     "name": "Yogesh Telange",

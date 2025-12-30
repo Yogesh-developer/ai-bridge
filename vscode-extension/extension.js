@@ -1,25 +1,12 @@
-// AI Bridge VS Code Extension - Production Ready v2.0.0
+// AI Bridge VS Code Extension - Production Ready v1.0.0
 // Author: Yogesh Telange (yogesh.x.telange@gmail.com)
 // License: MIT
 // Repository: https://github.com/yogesh-telange/ai-bridge-vscode
 // Security: Enterprise-grade with full validation and logging
 //
-// NEW IN v2.0.0:
-// ✅ Embedded bridge server (auto-starts with extension)
-// ✅ No separate server installation needed
-// ✅ Automatic server lifecycle management
-// ✅ Port conflict handling
-// ✅ Server health monitoring
+// Lifecycle management for the embedded bridge server
 //
-// FEATURES:
-// ✅ URL validation (localhost only - prevents unauthorized access)
-// ✅ Input validation (type checking, length limits)
-// ✅ Structured logging (sensitive data redacted)
-// ✅ Retry logic with exponential backoff
-// ✅ Security configuration options
-// ✅ Connection state management
-// ✅ Comprehensive error handling
-// ✅ No hardcoded credentials
+// Security and validation layers
 
 'use strict';
 
@@ -36,7 +23,7 @@ const { keyboard, Key } = require('@nut-tree-fork/nut-js');
 // CONSTANTS & CONFIGURATION
 // ============================================================================
 
-const VERSION = '2.0.0';
+const VERSION = '1.0.0';
 const AUTHOR = 'Yogesh Telange';
 const AUTHOR_EMAIL = 'yogesh.x.telange@gmail.com';
 const MAX_CONNECTION_ATTEMPTS = 5;
@@ -116,20 +103,6 @@ const AI_CHAT_PROVIDERS = {
     chatCommand: 'workbench.action.chat.open',
     supportsQuery: true,
     priority: 2
-  },
-  // Codeium / Windsurf
-  'Codeium.codeium': {
-    name: 'Codeium/Windsurf',
-    chatCommand: 'codeium.openChat',
-    supportsQuery: false,
-    priority: 3
-  },
-  // Continue
-  'Continue.continue': {
-    name: 'Continue',
-    chatCommand: 'continue.focusChat',
-    supportsQuery: false,
-    priority: 4
   }
 };
 
@@ -142,13 +115,13 @@ let detectedChatProvider = null;
 async function detectAIChatProvider() {
   const logger = serverLogger || { info: console.log, debug: console.log, warn: console.warn };
 
-  logger.info('🔍 Detecting AI chat providers...');
+  logger.info('Detecting AI chat providers...');
 
   // Check known AI extensions
   for (const [extensionId, providerInfo] of Object.entries(AI_CHAT_PROVIDERS)) {
     const ext = vscode.extensions.getExtension(extensionId);
     if (ext) {
-      logger.info(`✅ Found AI extension: ${providerInfo.name} (${extensionId})`);
+      logger.info(`Found AI extension: ${providerInfo.name} (${extensionId})`);
       detectedChatProvider = { extensionId, ...providerInfo };
       break;
     }
@@ -333,7 +306,7 @@ async function ensureServerRunning(context) {
     const healthy = await isServerHealthy(healthUrl);
 
     if (healthy) {
-      logger.info('✅ Existing server is healthy, connecting to it');
+      logger.info('Existing server is healthy, connecting to it');
       return; // Server already running, just connect
     } else {
       logger.warn('Server port in use but not responding, may need cleanup');
@@ -341,7 +314,7 @@ async function ensureServerRunning(context) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       const retryHealthy = await isServerHealthy(healthUrl);
       if (retryHealthy) {
-        logger.info('✅ Server recovered, connecting to it');
+        logger.info('Server recovered, connecting to it');
         return;
       }
       // If still not healthy, we'll try to start our own
@@ -403,7 +376,7 @@ async function startBridgeServer(context) {
         logger.warn('Server process exited', { code, signal });
         if (code !== 0 && code !== null) {
           vscode.window.showWarningMessage(
-            `⚠️ Bridge server stopped unexpectedly (code: ${code}). Extension may not work correctly.`
+            `Bridge server stopped unexpectedly (code: ${code}). Extension may not work correctly.`
           );
         }
       });
@@ -412,7 +385,7 @@ async function startBridgeServer(context) {
       logger.info('Waiting for server to start...');
       waitForServerReady(`http://localhost:${DEFAULT_HTTP_PORT}/api/health`, SERVER_STARTUP_TIMEOUT)
         .then(() => {
-          logger.info('✅ Bridge server started successfully');
+          logger.info('Bridge server started successfully');
           resolve();
         })
         .catch((error) => {
@@ -498,8 +471,8 @@ async function activate(context) {
       vscode.StatusBarAlignment.Right,
       100
     );
-    statusBarItem.text = '$(loading~spin) AI Bridge: Starting...';
-    statusBarItem.tooltip = 'AI Bridge v2.0.0: Starting embedded server...';
+    statusBarItem.text = '$(sync~spin) AI Bridge: Starting...';
+    statusBarItem.tooltip = 'AI Bridge v1.0.0: Starting embedded server';
     statusBarItem.command = 'ai-bridge.reconnect';
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
@@ -548,7 +521,7 @@ async function activate(context) {
     context.subscriptions.push(testCommand, connectCommand, reconnectCommand, logsCommand);
 
     // Start embedded bridge server
-    updateStatusBar('$(loading~spin) AI Bridge: Starting server...', 'Starting embedded bridge server');
+    updateStatusBar('$(sync~spin) AI Bridge: Starting server...', 'Starting embedded bridge server');
 
     try {
       await startBridgeServer(context);
@@ -565,7 +538,7 @@ async function activate(context) {
       logger.error('Failed to start embedded server', { error: error.message });
       updateStatusBar('$(error) AI Bridge: Server Error', 'Failed to start server - see logs');
       vscode.window.showErrorMessage(
-        `❌ AI Bridge: Failed to start embedded server. ${error.message}. Check Output → AI Bridge: Server`
+        `AI Bridge: Failed to start embedded server. ${error.message}. Check Output -> AI Bridge: Server`
       );
       return;
     }
@@ -583,7 +556,7 @@ async function activate(context) {
     });
     isActivated = false;
     vscode.window.showErrorMessage(
-      `❌ AI Bridge activation failed: ${error.message}. Check Output → AI Bridge: Extension`
+      `AI Bridge activation failed: ${error.message}. Check Output -> AI Bridge: Extension`
     );
   }
 }
@@ -599,12 +572,12 @@ function testConnection() {
 
     logger.info('Connection test passed');
     vscode.window.showInformationMessage(
-      '✅ AI Bridge is active and properly configured! v' + VERSION
+      'AI Bridge is active and properly configured! v' + VERSION
     );
   } catch (error) {
     logger.error('Connection test failed', { error: error.message });
     vscode.window.showErrorMessage(
-      `❌ Test failed: ${error.message}. Check Settings → AI Bridge`
+      `Test failed: ${error.message}. Check Settings -> AI Bridge`
     );
   }
 }
@@ -644,7 +617,7 @@ function connectToServer() {
       if (!isActivated) return;
 
       connectionAttempts = 0;
-      logger.info('✅ WebSocket connection established successfully');
+      logger.info('WebSocket connection established successfully');
       updateStatusBar('$(check) AI Bridge: Connected', 'Connected to embedded bridge server');
 
       // Send client info securely
@@ -714,7 +687,7 @@ function connectToServer() {
       } else {
         logger.error('Max connection attempts exceeded');
         vscode.window.showErrorMessage(
-          `❌ AI Bridge failed to connect after ${MAX_CONNECTION_ATTEMPTS} attempts. ` +
+          `AI Bridge failed to connect after ${MAX_CONNECTION_ATTEMPTS} attempts. ` +
           `The embedded server may have stopped. Try reloading VS Code.`
         );
       }
@@ -749,7 +722,7 @@ async function handlePrompt(data) {
     if (!promptRateLimiter.canMakeRequest()) {
       const resetInSeconds = Math.ceil(promptRateLimiter.getResetTime() / 1000);
       const message =
-        `⚠️ Rate limit exceeded. Please wait ${resetInSeconds} seconds before sending another prompt. ` +
+        `Rate limit exceeded. Please wait ${resetInSeconds} seconds before sending another prompt. ` +
         `This protects against accidental spam.`;
 
       logger.warn('Rate limit exceeded', {
@@ -788,14 +761,14 @@ async function handlePrompt(data) {
 
     if (success) {
       vscode.window.showInformationMessage(
-        `✅ AI Bridge: Prompt sent! (${remaining - 1} requests remaining this minute)`
+        `AI Bridge: Prompt sent! (${remaining - 1} requests remaining this minute)`
       );
     } else {
       // Fallback: Show MODAL dialog - very visible, stays on screen
       const preview = prompt.substring(0, 150);
       vscode.window.showInformationMessage(
-        `✅ AI Bridge: Prompt copied to clipboard!\n\n` +
-        `Open your AI chat panel and press Cmd+V (Mac) or Ctrl+V (Windows) to paste.\n\n` +
+        `AI Bridge: Prompt copied to clipboard!\n\n` +
+        `Open your AI chat panel and paste (Cmd+V / Ctrl+V) to provide the context.\n\n` +
         `Preview: "${preview}..."`,
         { modal: true },
         'Got it!'
@@ -808,7 +781,7 @@ async function handlePrompt(data) {
       stack: error.stack
     });
     vscode.window.showErrorMessage(
-      `❌ Failed to process prompt: ${error.message}`
+      `Failed to process prompt: ${error.message}`
     );
   }
 }
@@ -885,7 +858,7 @@ async function tryOpenAIChat(prompt) {
     await keyboard.pressKey(Key.Enter);
     await keyboard.releaseKey(Key.Enter);
 
-    logger.info('✅ Prompt sent via VS Code automation');
+    logger.info('Prompt sent via VS Code automation');
     return true;
 
   } catch (error) {
@@ -957,23 +930,10 @@ module.exports = {
 // ============================================================================
 // METADATA
 // ============================================================================
-// Version: 2.0.0
+// Version: 1.0.0
 // Author: Yogesh Telange (yogesh.x.telange@gmail.com)
 // License: MIT
 // Repository: https://github.com/yogesh-telange/ai-bridge-vscode
 //
-// PRODUCTION SECURITY FEATURES:
-// ✅ URL validation (localhost-only prevents unauthorized remote access)
-// ✅ Input validation (type checking and length limits)
-// ✅ Structured logging (sensitive data automatically redacted)
-// ✅ Retry logic (exponential backoff for reliability)
-// ✅ Security settings (configurable security options)
-// ✅ Error handling (comprehensive try-catch blocks)
-// ✅ Connection management (automatic reconnection)
-// ✅ No hardcoded credentials (all via configuration)
-// ✅ Audit logging (all actions logged for compliance)
-// ✅ Data sanitization (no user data exposure in logs)
-// ✅ Embedded server (auto-starts and stops with extension)
-// ✅ Server lifecycle management (graceful startup/shutdown)
-//
+// Production Security Features
 // ============================================================================
