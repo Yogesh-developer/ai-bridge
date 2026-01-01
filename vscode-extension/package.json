@@ -95,6 +95,15 @@
           "default": true,
           "description": "Enable security checks (DO NOT DISABLE IN PRODUCTION)",
           "scope": "machine"
+        },
+        "ai-bridge.additionalAllowedHosts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Additional local hostnames or IPs to whitelist. Useful for custom dev domains like `myapp.test` configured in `/etc/hosts`.",
+          "scope": "machine"
         }
       }
     }

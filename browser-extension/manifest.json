@@ -10,15 +10,12 @@
     "128": "icons/icon128.png"
   },
   "permissions": [
-    "activeTab",
-    "storage",
-    "scripting"
+    "activeTab"
   ],
   "host_permissions": [
     "http://localhost:3000/*",
     "http://localhost:3001/*",
-    "ws://localhost:3001/*",
-    "<all_urls>"
+    "ws://localhost:3001/*"
   ],
   "background": {
     "service_worker": "background.js"

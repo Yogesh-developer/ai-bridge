@@ -89,22 +89,16 @@ class SecurityValidator {
         return true;
       }
 
-      // Allow .local domains (common for local development)
-      if (hostname.endsWith('.local')) {
+      // Allow common development TLDs
+      const localTLDs = ['.local', '.localhost', '.test', '.example'];
+      if (localTLDs.some(tld => hostname.endsWith(tld))) {
         return true;
       }
 
       // Allow private IP ranges (RFC 1918)
-      // 192.168.0.0/16
-      if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
-        return true;
-      }
-      // 10.0.0.0/8
-      if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
-        return true;
-      }
-      // 172.16.0.0/12
-      if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+      if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+        /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+        /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
         return true;
       }
 

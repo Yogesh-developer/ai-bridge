@@ -137,15 +137,39 @@ class SecurityValidator {
   static validateUrl(url) {
     try {
       const urlObj = new URL(url);
-      const allowedHosts = ['localhost', '127.0.0.1', '::1'];
+      const hostname = urlObj.hostname.toLowerCase();
 
-      if (!allowedHosts.includes(urlObj.hostname)) {
-        throw new Error(
-          `SECURITY BLOCKED: Only localhost URLs allowed. Got: ${urlObj.hostname}. ` +
-          `This prevents unauthorized remote access to your code.`
-        );
+      // Default allowed hosts
+      const allowedHosts = ['localhost', '127.0.0.1', '::1'];
+      if (allowedHosts.includes(hostname)) {
+        return true;
       }
-      return true;
+
+      // Allow common development TLDs
+      const localTLDs = ['.local', '.localhost', '.test', '.example'];
+      if (localTLDs.some(tld => hostname.endsWith(tld))) {
+        return true;
+      }
+
+      // Allow private IP ranges (RFC 1918)
+      if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+        /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+        /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+        return true;
+      }
+
+      // Check additional allowed hosts from configuration
+      const config = vscode.workspace.getConfiguration('ai-bridge');
+      const additionalHosts = config.get('additionalAllowedHosts', []);
+      if (Array.isArray(additionalHosts) && additionalHosts.includes(hostname)) {
+        return true;
+      }
+
+      throw new Error(
+        `SECURITY BLOCKED: Host '${hostname}' is not authorized. ` +
+        `Only localhost and local development domains are allowed. ` +
+        `You can whitelist this host in VS Code settings under 'AI Bridge: Additional Allowed Hosts'.`
+      );
     } catch (error) {
       throw new Error(`Invalid URL format: ${error.message}`);
     }
