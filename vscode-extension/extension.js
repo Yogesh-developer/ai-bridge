@@ -23,7 +23,7 @@ const { keyboard, Key } = require('@nut-tree-fork/nut-js');
 // CONSTANTS & CONFIGURATION
 // ============================================================================
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const AUTHOR = 'Yogesh Telange';
 const AUTHOR_EMAIL = 'yogesh.x.telange@gmail.com';
 const MAX_CONNECTION_ATTEMPTS = 3;
@@ -798,6 +798,10 @@ async function handlePrompt(data) {
 
     const prompt = data.prompt;
 
+    if (data.type === 'insert-code') {
+      await handleInsert(data);
+      return;
+    }
 
     // Step 1: Try to open AI chat and send prompt directly
     logger.info('About to call tryOpenAIChat...');
@@ -828,6 +832,43 @@ async function handlePrompt(data) {
     vscode.window.showErrorMessage(
       `Failed to process prompt: ${error.message}`
     );
+  }
+}
+
+/**
+ * Handle direct code insertion into the active editor
+ */
+async function handleInsert(data) {
+  try {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showErrorMessage('AI Bridge: No active text editor found to insert code.');
+      return;
+    }
+
+    // Use originalPrompt if available (raw text), otherwise fallback to prompt
+    const textToInsert = data.originalPrompt || data.prompt;
+    if (!textToInsert) {
+      logger.warn('No text provided for insertion');
+      return;
+    }
+
+    await editor.edit(editBuilder => {
+      // Replace the entire selection or insert at cursor
+      const selection = editor.selection;
+      if (selection.isEmpty) {
+        editBuilder.insert(selection.active, textToInsert);
+      } else {
+        editBuilder.replace(selection, textToInsert);
+      }
+    });
+
+    updateStatusBar('$(check) AI Bridge: Inserted', 'Text inserted into editor');
+    vscode.window.showInformationMessage('AI Bridge: Code inserted successfully.');
+
+  } catch (error) {
+    logger.error('Error inserting code', { error: error.message });
+    vscode.window.showErrorMessage(`AI Bridge: Insertion failed. ${error.message}`);
   }
 }
 
