@@ -352,9 +352,21 @@ async function ensureServerRunning(context) {
 }
 
 async function startBridgeServer(context) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
       serverLogger = new Logger('Server');
+      const healthUrl = `http://localhost:${DEFAULT_HTTP_PORT}/api/health`;
+
+      // Check if server is already running (e.g., from another VS Code window)
+      try {
+        logger.info('Checking if bridge server is already running...');
+        await checkServerHealth(healthUrl);
+        logger.info('Existing bridge server detected and healthy. Proceeding...');
+        resolve(); // Server already running, no need to spawn
+        return;
+      } catch (error) {
+        logger.info('No existing healthy server detected, starting new instance');
+      }
 
       const serverPath = context.asAbsolutePath(path.join('server', 'server.js'));
       const serverDir = path.dirname(serverPath);
@@ -709,11 +721,20 @@ function connectToServer() {
         });
         setTimeout(() => connectToServer(), RECONNECT_DELAY);
       } else {
-        logger.error('Max connection attempts exceeded');
-        vscode.window.showErrorMessage(
-          `AI Bridge failed to connect after ${MAX_CONNECTION_ATTEMPTS} attempts. ` +
-          `The embedded server may have stopped. Try reloading VS Code.`
-        );
+        logger.error('Max connection attempts exceeded. Attempting server recovery...');
+        // Try to restart the server - maybe the previous owner (window) was closed
+        startBridgeServer(extensionContext)
+          .then(() => {
+            connectionAttempts = 0;
+            connectToServer();
+          })
+          .catch((error) => {
+            logger.error('Server recovery failed', { error: error.message });
+            vscode.window.showErrorMessage(
+              `AI Bridge failed to connect and recovery failed. ` +
+              `The server may be blocked or occupied by another process.`
+            );
+          });
       }
     });
 
@@ -916,9 +937,18 @@ function deactivate() {
 
   isActivated = false;
 
-  // DON'T stop the server - it may be shared with other VS Code instances
-  // The server will continue running for other instances
-  logger.info('Leaving server running for other VS Code instances');
+  // Kill the server process if it was started by this instance
+  if (serverProcess) {
+    try {
+      logger.info('Shutting down bridge server process');
+      serverProcess.kill('SIGTERM');
+      serverProcess = null;
+    } catch (error) {
+      logger.error('Error killing server process', { error: error.message });
+    }
+  } else {
+    logger.info('No server process to kill (extension was likely using shared server)');
+  }
 
   if (ws) {
     try {
