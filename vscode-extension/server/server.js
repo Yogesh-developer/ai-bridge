@@ -428,15 +428,8 @@ app.post('/api/send', async (req, res) => {
       });
     }
 
-    // Build full prompt with context
-    let fullPrompt = prompt;
-    if (selectedText && selectedText.length > 0) {
-      const maxContextLength = Math.min(selectedText.length, 5000);
-      fullPrompt = `${prompt}\n\nContext from webpage:\n${selectedText.substring(0, maxContextLength)}`;
-    }
-    if (title || url) {
-      fullPrompt += `\n\nSource: ${title || 'Unknown'} (${url || 'N/A'})`;
-    }
+    // Use the prompt as provided by the client (already enriched by browser extension)
+    const fullPrompt = prompt;
 
     const message = JSON.stringify({
       type: 'prompt',

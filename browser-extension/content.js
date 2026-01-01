@@ -499,49 +499,16 @@ function getElementMetadata() {
  * Construct a standardized, enriched prompt with context
  */
 function constructEnrichedPrompt(userPrompt, includeSystemRole = true) {
-  const elementContext = getElementMetadata();
+  const ctx = getElementMetadata();
+  const source = `${document.title.substring(0, 50)} (${window.location.hostname})`;
 
-  let enriched = '';
+  // Minimalist "Contextual Instruction" format
+  let prompt = includeSystemRole ? 'Rule: Concisely provided code/diffs. No chatter.\n' : '';
+  prompt += `Site: ${source}\n`;
+  prompt += selectedText ? `Context: "${selectedText.substring(0, 1500)}"\n` : `HTML: ${ctx?.html?.substring(0, 800)}\n`;
+  prompt += `Action: ${userPrompt || 'Refactor/Explain.'}`;
 
-  if (includeSystemRole) {
-    enriched += `SYSTEM ROLE
-You are a senior AI developer assisting inside a browser + IDE workflow.
-You receive webpage context and a user instruction. Use the context,
-but do not assume access to the full codebase.
-
-Primary goals (in order):
-1) If the user asks for a CHANGE: produce the FINAL UPDATED CODE.
-2) Prefer returning changes as a unified diff patch when possible.
-3) Suggest the most likely file or folder based on URL + element.
-4) If the user only asks a QUESTION: answer briefly.
-5) If something is unclear: ask ONE short clarifying question.
-
-Show the final result first. Be precise and minimal.
-
------------------------------------------------------
-`;
-  }
-
-  enriched += `BROWSER CONTEXT
-Page URL: ${window.location.href}
-Page Title: ${document.title}
-
-ELEMENT
-Tag: ${elementContext?.tag || 'none'}
-ID: ${elementContext?.id || 'none'}
-Class: ${elementContext?.className || 'none'}
-
-HTML SNIPPET
-${elementContext?.html || 'none'}
-
-SELECTED TEXT
-${selectedText || 'none'}
------------------------------------------------------
-
-USER INSTRUCTION
-${userPrompt || (selectedText ? 'Please explain this selected text/code.' : 'Please provide help with this element.')}`;
-
-  return enriched;
+  return prompt;
 }
 
 /**
