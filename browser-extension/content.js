@@ -268,6 +268,9 @@ function showInputBox(x, y) {
     <div class="ai-bridge-header">
       <span>AI Bridge v1.0.0</span>
       <div class="ai-bridge-header-actions">
+        <button class="ai-bridge-insert" title="Direct Insert (⬇️) into VS Code">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v5.793L5.354 8.146a.5.5 0 1 0-.708.708l3.247 3.247a.5.5 0 0 0 .708 0l3.247-3.247a.5.5 0 0 0-.708-.708L8.5 10.293V4.5z"/></svg>
+        </button>
         <button class="ai-bridge-copy" title="Copy to clipboard">
           <svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>
         </button>
@@ -333,6 +336,7 @@ function showInputBox(x, y) {
   inputBox.querySelector('.ai-bridge-close').addEventListener('click', closeInputBox);
   inputBox.querySelector('.ai-bridge-send').addEventListener('click', sendToAI);
   inputBox.querySelector('.ai-bridge-copy').addEventListener('click', copyToClipboard);
+  inputBox.querySelector('.ai-bridge-insert').addEventListener('click', insertIntoVSCode);
 
   // Keyboard shortcuts
   textarea.addEventListener('keydown', (e) => {
@@ -611,6 +615,60 @@ async function sendToAI() {
     statusDiv.textContent = `Error: ${error.message}`;
     statusDiv.className = 'ai-bridge-status error';
     sendBtn.disabled = false;
+  }
+}
+
+/**
+ * Directly insert text into VS Code active selection
+ */
+async function insertIntoVSCode() {
+  const textarea = inputBox.querySelector('.ai-bridge-input');
+  const insertBtn = inputBox.querySelector('.ai-bridge-insert');
+  const statusDiv = inputBox.querySelector('.ai-bridge-status');
+  const prompt = textarea.value.trim();
+
+  if (!selectedClientId) {
+    statusDiv.textContent = 'Please select a VS Code instance';
+    statusDiv.className = 'ai-bridge-status error';
+    return;
+  }
+
+  // Show loading
+  insertBtn.disabled = true;
+  statusDiv.textContent = 'Inserting into VS Code...';
+  statusDiv.className = 'ai-bridge-status loading';
+
+  try {
+    const pageContext = {
+      type: 'insert-code',
+      url: window.location.href,
+      title: document.title,
+      selectedText: selectedText.substring(0, 5000),
+      prompt: prompt || selectedText,
+      originalPrompt: prompt,
+      timestamp: new Date().toISOString(),
+      targetClientId: selectedClientId
+    };
+
+    const response = await fetch('http://localhost:3000/api/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pageContext)
+    });
+
+    const result = await response.json();
+    if (result.success) {
+      statusDiv.textContent = 'Inserted into editor!';
+      statusDiv.className = 'ai-bridge-status success';
+      setTimeout(closeInputBox, 1000);
+    } else {
+      throw new Error(result.error || 'Insert failed');
+    }
+  } catch (error) {
+    Logger.error('Insert failed', { error: error.message });
+    statusDiv.textContent = `Error: ${error.message}`;
+    statusDiv.className = 'ai-bridge-status error';
+    insertBtn.disabled = false;
   }
 }
 
