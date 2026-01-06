@@ -688,10 +688,12 @@ function getElementMetadata() {
 function constructEnrichedPrompt(userPrompt, includeSystemRole = true) {
   const ctx = getElementMetadata();
   const source = `${document.title.substring(0, 50)} (${window.location.hostname})`;
+  const route = window.location.pathname;
 
   // Minimalist "Contextual Instruction" format
   let prompt = includeSystemRole ? 'Rule: Concisely provided code/diffs. No chatter.\n' : '';
   prompt += `Site: ${source}\n`;
+  prompt += `Route: ${route}\n`;
   prompt += selectedText ? `Context: "${selectedText.substring(0, 1500)}"\n` : `HTML: ${ctx?.html?.substring(0, 800)}\n`;
   prompt += `Action: ${userPrompt || 'Refactor/Explain.'}`;
 
