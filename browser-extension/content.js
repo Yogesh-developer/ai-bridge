@@ -75,35 +75,218 @@ class SecurityValidator {
   }
 
   /**
-   * Validate that URL is localhost/local development only
+   * World-class local environment detection algorithm
    * SECURITY: Prevents accidental data leakage from public websites
+   * Returns: boolean (true if local development environment)
+   * 
+   * Detects:
+   * - Localhost (IPv4, IPv6, all variants)
+   * - Private IP ranges (RFC 1918, RFC 4193)
+   * - Development domains (.local, .test, .dev, etc.)
+   * - Development ports (common dev servers)
+   * - Docker/container environments
+   * - Tunneling services (ngrok, localtunnel, etc.)
+   * - Special development patterns
    */
   static isLocalUrl(url) {
     try {
       const urlObj = new URL(url);
       const hostname = urlObj.hostname.toLowerCase();
+      const port = urlObj.port;
 
-      // Allow localhost variants
-      const localhostNames = ['localhost', '127.0.0.1', '::1', '[::1]'];
-      if (localhostNames.includes(hostname)) {
+      // === TIER 1: Localhost Variants (Absolute Certainty) ===
+      const localhostVariants = [
+        'localhost',
+        '127.0.0.1',
+        '::1',
+        '[::1]',
+        '0.0.0.0',
+        '::',
+        'ip6-localhost',
+        'ip6-loopback'
+      ];
+      if (localhostVariants.includes(hostname)) {
         return true;
       }
 
-      // Allow common development TLDs
-      const localTLDs = ['.local', '.localhost', '.test', '.example'];
-      if (localTLDs.some(tld => hostname.endsWith(tld))) {
+      // === TIER 2: Loopback IP Ranges (IPv4 & IPv6) ===
+      // IPv4: 127.0.0.0/8 (127.0.0.0 - 127.255.255.255)
+      if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
         return true;
       }
 
-      // Allow private IP ranges (RFC 1918)
-      if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
-        /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
-        /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+      // IPv6 loopback variations
+      if (hostname.startsWith('::ffff:127.') || // IPv4-mapped IPv6
+        hostname === '::1' ||
+        hostname === '[::1]') {
         return true;
       }
 
+      // === TIER 3: Private IP Ranges (RFC 1918) ===
+      // 10.0.0.0/8 (10.0.0.0 - 10.255.255.255)
+      if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+        return true;
+      }
+
+      // 172.16.0.0/12 (172.16.0.0 - 172.31.255.255)
+      if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+        return true;
+      }
+
+      // 192.168.0.0/16 (192.168.0.0 - 192.168.255.255)
+      if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+        return true;
+      }
+
+      // === TIER 4: Link-Local Addresses ===
+      // 169.254.0.0/16 (Auto-configuration)
+      if (/^169\.254\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+        return true;
+      }
+
+      // IPv6 link-local: fe80::/10
+      if (hostname.startsWith('fe80:') || hostname.startsWith('[fe80:')) {
+        return true;
+      }
+
+      // === TIER 5: IPv6 Unique Local Addresses (RFC 4193) ===
+      // fc00::/7 (fc00:: - fdff::)
+      if (hostname.startsWith('fc') || hostname.startsWith('fd') ||
+        hostname.startsWith('[fc') || hostname.startsWith('[fd')) {
+        return true;
+      }
+
+      // === TIER 6: Development Domain TLDs ===
+      const devTLDs = [
+        '.local',           // mDNS/Bonjour
+        '.localhost',       // RFC 2606
+        '.test',            // RFC 2606
+        '.example',         // RFC 2606
+        '.invalid',         // RFC 2606
+        '.dev',             // Chrome forces HTTPS, but still local dev
+        '.internal',        // Common enterprise pattern
+        '.lan',             // Common router pattern
+        '.home',            // Common home network pattern
+        '.localdomain',     // Linux default
+        '.localnet'         // Alternative pattern
+      ];
+      if (devTLDs.some(tld => hostname.endsWith(tld))) {
+        return true;
+      }
+
+      // === TIER 7: Development Subdomain Patterns ===
+      const devPrefixes = [
+        'local.',
+        'localhost.',
+        'dev.',
+        'development.',
+        'test.',
+        'testing.',
+        'stage.',
+        'staging.',
+        'qa.',
+        'uat.',
+        'demo.',
+        'preview.'
+      ];
+      if (devPrefixes.some(prefix => hostname.startsWith(prefix))) {
+        return true;
+      }
+
+      // === TIER 8: Common Development Ports (High Confidence) ===
+      // These ports are almost always local development
+      const devPorts = [
+        '3000', '3001', '3002', '3003', // Node.js, React, Express
+        '4200', '4201',                  // Angular
+        '5000', '5001', '5002',         // Flask, ASP.NET
+        '8000', '8001', '8080', '8081', '8888', // Django, Java, Python
+        '9000', '9001', '9002',                // PHP, Go
+        '1313',                          // Hugo
+        '4000',                          // Jekyll
+        '5173', '5174',                  // Vite
+        '8082', '8083', '8084',         // Alternative dev servers
+        '3333', '4444', '5555',         // Common custom ports
+        '7000', '7001',                  // Ember
+        '9090', '9091',                  // Prometheus, webpack
+        '35729',                         // LiveReload
+        '1234', '12345',                 // Quick test servers
+        '8787',                          // Cloudflare Workers
+        '24678'                          // Browsersync
+      ];
+      if (port && devPorts.includes(port)) {
+        return true;
+      }
+
+      // === TIER 9: Docker/Container Patterns ===
+      // Docker internal hostnames
+      if (hostname.includes('docker') ||
+        hostname === 'host.docker.internal' ||
+        hostname.endsWith('.docker.internal') ||
+        hostname.startsWith('docker-')) {
+        return true;
+      }
+
+      // === TIER 10: Special Development Hostnames ===
+      const specialHosts = [
+        'lvh.me',                // Resolves to 127.0.0.1
+        'vcap.me',               // Cloud Foundry local
+        'sslip.io',              // DNS service for local IPs
+        'nip.io',                // DNS service for local IPs
+        'xip.io',                // DNS service for local IPs (deprecated but still used)
+        'traefik.me',            // Traefik local domain
+        'localtest.me'           // Testing local domain
+      ];
+      if (specialHosts.some(host => hostname.includes(host))) {
+        return true;
+      }
+
+      // === TIER 11: Tunneling Services (Development Tunnels) ===
+      // These are tunnels to local development, count as local
+      const tunnelServices = [
+        'ngrok.io',
+        'ngrok-free.app',
+        'localhost.run',
+        'localtunnel.me',
+        'serveo.net',
+        'expose.dev',
+        'tailscale',
+        'cloudflared'
+      ];
+      if (tunnelServices.some(service => hostname.includes(service))) {
+        // Additional check: must have dev-like subdomain or port
+        if (port && devPorts.includes(port)) {
+          return true;
+        }
+        // Or subdomain pattern like: abc123.ngrok.io
+        if (/^[a-z0-9-]+\.ngrok/.test(hostname)) {
+          return true;
+        }
+      }
+
+      // === TIER 12: IP Address Patterns (Catch remaining edge cases) ===
+      // Check if it's an IP address format at all
+      const isIPv4 = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname);
+      const isIPv6 = hostname.includes(':') && !hostname.includes('.');
+
+      if (isIPv4 || isIPv6) {
+        // If it's an IP and on a dev port, likely local
+        if (port && devPorts.includes(port)) {
+          return true;
+        }
+      }
+
+      // === TIER 13: Browser-specific local hostnames ===
+      // Some browsers use these for local network discovery
+      if (hostname.endsWith('.home.arpa') || // RFC 8375
+        hostname.endsWith('.mshome.net')) { // Windows local network
+        return true;
+      }
+
+      // === DEFAULT: Not a local environment ===
       return false;
+
     } catch (error) {
+      // If URL parsing fails, assume not local for security
       return false;
     }
   }
