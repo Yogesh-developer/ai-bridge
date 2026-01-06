@@ -80,22 +80,32 @@ class SecurityValidator {
     try {
       const urlObj = new URL(url);
       const hostname = urlObj.hostname.toLowerCase();
+      const port = urlObj.port;
 
-      // Allow localhost variants
-      const localhostNames = ['localhost', '127.0.0.1', '::1', '[::1]'];
-      if (localhostNames.includes(hostname)) {
-        return true;
-      }
+      // check if it is a file
+      if (urlObj.protocol === 'file:') return true;
 
-      // Allow .local domains (common for local development)
-      if (hostname.endsWith('.local')) {
-        return true;
-      }
+      // 1. Localhost variants
+      const localhostNames = ['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0'];
+      if (localhostNames.includes(hostname)) return true;
 
-      // Allow private IP ranges (RFC 1918)
+      // 2. Private IP Ranges
+      if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
       if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
       if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
       if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+
+      // 3. Dev TLDs & Subdomains
+      if (hostname.endsWith('.local') || hostname.endsWith('.test') || hostname.endsWith('.localhost')) return true;
+      if (hostname.startsWith('local.') || hostname.startsWith('dev.') || hostname.startsWith('test.')) return true;
+
+      // 4. Common Dev Ports (High confidence regardless of domain)
+      const devPorts = ['3000', '3001', '4200', '5000', '5173', '8000', '8080', '8888'];
+      if (port && devPorts.includes(port)) return true;
+
+      // 5. Tunnels & Containers
+      if (hostname.includes('ngrok') || hostname.includes('tunnel') || hostname.includes('docker')) return true;
+      if (hostname.includes('lvh.me') || hostname.includes('nip.io')) return true;
 
       return false;
     } catch (error) {
@@ -607,15 +617,16 @@ app.use((err, req, res, next) => {
 // SERVER STARTUP
 // ============================================================================
 
-const httpServer = app.listen(PORT, 'localhost', () => {
+// Bind to all interfaces (default) to handle both IPv4 and IPv6 (localhost) correctly
+const httpServer = app.listen(PORT, () => {
   console.log('-----------------------------------------------------------------');
-  console.log('        AI Bridge Server v1.0.0 - PRODUCTION READY              ');
+  console.log('        AI Bridge Server v1.1.0 - NETWORK READY                 ');
   console.log('-----------------------------------------------------------------');
   const banner = `
-  Author: Yogesh Telange <yogesh.x.telange@gmail.gmail>
+  Author: Yogesh Telange <yogesh.x.telange@gmail.com>
   License: MIT
 
-  Security Mode: ENABLED (localhost-only)
+  Security Mode: NETWORK-ENABLED (Protected by Host Whitelist)
   Rate Limiting: ENABLED (10 req/sec)
   Payload Limit: 1MB
   Request Timeout: 30s
@@ -625,9 +636,10 @@ const httpServer = app.listen(PORT, 'localhost', () => {
     httpPort: PORT,
     wsPort: WS_PORT,
     mode: 'production',
-    securityEnabled: true
+    securityEnabled: true,
+    binding: '0.0.0.0'
   });
-  console.log(`📡 HTTP Server: http://localhost:${PORT}`);
+  console.log(`📡 HTTP Server: http://0.0.0.0:${PORT}`);
   console.log(`🔌 WebSocket Server: ws://localhost:${WS_PORT}`);
   console.log(`\n⏳ Waiting for VS Code extensions to connect...\n`);
 });

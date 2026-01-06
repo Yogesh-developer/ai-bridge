@@ -384,7 +384,15 @@ document.addEventListener('click', (e) => {
 
     clickPosition = { x: e.pageX, y: e.pageY };
     selectedText = window.getSelection().toString();
+
+    // Clear previous selection highlight
+    if (selectedElement) {
+      selectedElement.style.outline = '';
+    }
+
+    // Single select with border highlight
     selectedElement = e.target;
+    selectedElement.style.outline = '2px solid #4ec9b0';
 
     Logger.debug('Click captured', {
       x: e.pageX,
@@ -451,9 +459,6 @@ function showInputBox(x, y) {
     <div class="ai-bridge-header">
       <span>AI Bridge v1.0.0</span>
       <div class="ai-bridge-header-actions">
-        <button class="ai-bridge-insert" title="Direct Insert (⬇️) into VS Code">
-          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v5.793L5.354 8.146a.5.5 0 1 0-.708.708l3.247 3.247a.5.5 0 0 0 .708 0l3.247-3.247a.5.5 0 0 0-.708-.708L8.5 10.293V4.5z"/></svg>
-        </button>
         <button class="ai-bridge-copy" title="Copy to clipboard">
           <svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>
         </button>
@@ -519,7 +524,6 @@ function showInputBox(x, y) {
   inputBox.querySelector('.ai-bridge-close').addEventListener('click', closeInputBox);
   inputBox.querySelector('.ai-bridge-send').addEventListener('click', sendToAI);
   inputBox.querySelector('.ai-bridge-copy').addEventListener('click', copyToClipboard);
-  inputBox.querySelector('.ai-bridge-insert').addEventListener('click', insertIntoVSCode);
 
   // Keyboard shortcuts
   textarea.addEventListener('keydown', (e) => {
@@ -573,6 +577,9 @@ function closeInputBox() {
   if (inputBox) {
     inputBox.remove();
     inputBox = null;
+  }
+  if (selectedElement) {
+    selectedElement.style.outline = '';
   }
   selectedElement = null;
   selectedClientId = null;
@@ -668,36 +675,274 @@ async function loadVSCodeInstances() {
 }
 
 /**
- * Get metadata for the currently selected element
+ * Get metadata for a specific element
  */
-function getElementMetadata() {
-  if (!selectedElement) return null;
+function getElementMetadata(element = selectedElement) {
+  if (!element) return null;
 
-  const elementHTML = selectedElement.outerHTML;
+
+  const elementHTML = element.outerHTML;
+
+
   return {
-    tag: selectedElement.tagName.toLowerCase(),
-    id: selectedElement.id || null,
-    className: selectedElement.className || null,
-    html: elementHTML.substring(0, 3000)
+    tag: element.tagName.toLowerCase(),
+    id: element.id || null,
+    className: element.className || null,
+    nearby: getNearbyContent(element),
+    pattern: getUIPattern(element),
+    html: elementHTML.substring(0, 1200)
   };
+}
+
+/**
+ * Detect the technology stack of the current page
+ */
+function getTechStack() {
+  const stack = new Set(); // Use Set to avoid duplicates
+
+  // React Detection (more reliable checks)
+  if (
+    document.querySelector('[data-reactroot]') ||
+    document.querySelector('#root') ||
+    document.querySelector('#__next') || // Next.js
+    document.querySelector('[data-reactid]') ||
+    window.React ||
+    window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ||
+    document.querySelector('script[src*="react"]')
+  ) {
+    stack.add('React');
+
+    // Next.js specific
+    if (document.querySelector('#__next') || window.__NEXT_DATA__) {
+      stack.add('Next.js');
+    }
+  }
+
+  // Vue Detection
+  if (
+    document.querySelector('[data-v-]') ||
+    document.querySelector('[data-v-app]') ||
+    window.__VUE__ ||
+    window.Vue ||
+    document.querySelector('script[src*="vue"]')
+  ) {
+    stack.add('Vue');
+
+    // Nuxt.js specific
+    if (window.__NUXT__) {
+      stack.add('Nuxt.js');
+    }
+  }
+
+  // Angular Detection
+  if (
+    document.querySelector('app-root') ||
+    document.querySelector('[ng-version]') ||
+    window.ng ||
+    document.querySelector('script[src*="angular"]')
+  ) {
+    stack.add('Angular');
+  }
+
+  // Svelte Detection
+  if (
+    document.querySelector('[class*="svelte-"]') ||
+    document.querySelector('[data-svelte-h]') ||
+    document.body.innerHTML.includes('svelte-')
+  ) {
+    stack.add('Svelte');
+
+    // SvelteKit specific
+    if (document.querySelector('[data-sveltekit-]')) {
+      stack.add('SvelteKit');
+    }
+  }
+
+  // Solid.js Detection
+  if (
+    document.querySelector('[data-solid-id]') ||
+    window._$HY
+  ) {
+    stack.add('Solid.js');
+  }
+
+  // Styling Framework Detection
+
+  // Tailwind (more specific check - avoid false positives)
+  const allClasses = Array.from(document.querySelectorAll('[class]'))
+    .map(el => el.className)
+    .join(' ');
+
+  const tailwindPatterns = /\b(flex|grid|p-\d|m-\d|text-(sm|lg|xl|center|left)|bg-(blue|red|gray|white|black)-\d{3}|rounded|shadow)\b/;
+  if (tailwindPatterns.test(allClasses)) {
+    stack.add('Tailwind CSS');
+  }
+
+  // Material UI
+  if (
+    document.querySelector('[class*="Mui"]') ||
+    document.querySelector('[class*="MuiButton"]') ||
+    document.querySelector('[class*="makeStyles"]')
+  ) {
+    stack.add('Material UI');
+  }
+
+  // Chakra UI
+  if (
+    document.querySelector('[class*="chakra"]') ||
+    document.querySelector('[data-theme*="chakra"]')
+  ) {
+    stack.add('Chakra UI');
+  }
+
+  // Bootstrap (more specific check)
+  if (
+    document.querySelector('[class*="bootstrap"]') ||
+    (document.querySelector('.btn') && document.querySelector('.container')) ||
+    document.querySelector('link[href*="bootstrap"]')
+  ) {
+    stack.add('Bootstrap');
+  }
+
+  // Ant Design
+  if (
+    document.querySelector('[class*="ant-"]') ||
+    document.querySelector('.ant-btn')
+  ) {
+    stack.add('Ant Design');
+  }
+
+  // Styled Components
+  if (document.querySelector('[class*="sc-"]')) {
+    stack.add('Styled Components');
+  }
+
+  // Emotion CSS
+  if (document.querySelector('[class*="css-"]') && document.querySelector('[data-emotion]')) {
+    stack.add('Emotion CSS');
+  }
+
+  // Backend/Full Stack Detection
+
+  // WordPress
+  if (
+    document.querySelector('link[href*="wp-content"]') ||
+    document.querySelector('body[class*="wordpress"]') ||
+    document.querySelector('meta[name="generator"][content*="WordPress"]')
+  ) {
+    stack.add('WordPress');
+  }
+
+  // Webflow
+  if (document.querySelector('html[data-wf-page]')) {
+    stack.add('Webflow');
+  }
+
+  // Shopify
+  if (
+    document.querySelector('meta[name="shopify-checkout-api-token"]') ||
+    window.Shopify
+  ) {
+    stack.add('Shopify');
+  }
+
+  // Django
+  if (document.querySelector('[name="csrfmiddlewaretoken"]')) {
+    stack.add('Django');
+  }
+
+  // jQuery (legacy but still common)
+  if (window.jQuery || window.$) {
+    stack.add('jQuery');
+  }
+
+  // TypeScript (check for .ts references in scripts)
+  const scripts = Array.from(document.querySelectorAll('script[src]'));
+  if (scripts.some(s => s.src.includes('.ts') || s.src.includes('typescript'))) {
+    stack.add('TypeScript');
+  }
+
+  return stack.size > 0 ? Array.from(stack).join(', ') : 'Vanilla JS/HTML';
+}
+
+/**
+ * Get nearby noticeable text content (headings, labels)
+ */
+function getNearbyContent(element) {
+  if (!element) return '';
+
+  // Look for previous heading
+  let sibling = element.previousElementSibling;
+  while (sibling) {
+    if (/^H[1-6]$/.test(sibling.tagName)) {
+      return `Nearby Heading: "${sibling.textContent.substring(0, 50)}"`;
+    }
+    sibling = sibling.previousElementSibling;
+  }
+
+  // Look for parent's previous heading (common in cards)
+  if (element.parentElement) {
+    let parentSibling = element.parentElement.previousElementSibling;
+    if (parentSibling && /^H[1-6]$/.test(parentSibling.tagName)) {
+      return `Section Heading: "${parentSibling.textContent.substring(0, 50)}"`;
+    }
+  }
+
+  // Look for associated label
+  if (element.id) {
+    const label = document.querySelector(`label[for="${element.id}"]`);
+    if (label) return `Label: "${label.textContent.trim()}"`;
+  }
+
+  return '';
+}
+
+/**
+ * Detect common UI pattern context
+ */
+function getUIPattern(element) {
+  const patterns = [];
+  if (element.closest('form')) patterns.push('Form');
+  if (element.closest('nav, header, [role="navigation"]')) patterns.push('Navigation');
+  if (element.closest('[role="dialog"], [class*="modal"]')) patterns.push('Modal/Dialog');
+  if (element.closest('table, [role="grid"]')) patterns.push('Data Table');
+  if (element.closest('ul, ol, [role="list"]')) patterns.push('List');
+
+  return patterns.join(', ');
 }
 
 /**
  * Construct a standardized, enriched prompt with context
  */
 function constructEnrichedPrompt(userPrompt, includeSystemRole = true) {
-  const ctx = getElementMetadata();
   const source = `${document.title.substring(0, 50)} (${window.location.hostname})`;
   const route = window.location.pathname;
+  const stack = getTechStack();
 
-  // Minimalist "Contextual Instruction" format
-  let prompt = includeSystemRole ? 'Rule: Concisely provided code/diffs. No chatter.\n' : '';
+  // Clear, structured format
+  let prompt = includeSystemRole ? 'Provide concise code/diffs only.\n' : '';
   prompt += `Site: ${source}\n`;
   prompt += `Route: ${route}\n`;
-  prompt += selectedText ? `Context: "${selectedText.substring(0, 1500)}"\n` : `HTML: ${ctx?.html?.substring(0, 800)}\n`;
-  prompt += `Action: ${userPrompt || 'Refactor/Explain.'}`;
+  prompt += `Stack: ${stack}\n`;
+
+  // Single Element
+  const ctx = getElementMetadata(selectedElement);
+  if (ctx) {
+    prompt += `\nElement: <${ctx.tag}${ctx.id ? ' id="' + ctx.id + '"' : ''}${ctx.className ? ' class="' + ctx.className + '"' : ''}>\n`;
+    if (ctx.pattern) prompt += `Pattern: ${ctx.pattern}\n`;
+    if (ctx.nearby) prompt += `${ctx.nearby}\n`;
+  }
+
+  if (selectedText) {
+    prompt += `\nSelected Text:\n"${selectedText.substring(0, 1000)}"\n`;
+  } else if (ctx) {
+    prompt += `\nHTML:\n${ctx.html}\n`;
+  }
+
+  prompt += `\nTask: ${userPrompt || 'Refactor this code'}`;
 
   return prompt;
+
 }
 
 /**
@@ -803,59 +1048,7 @@ async function sendToAI() {
   }
 }
 
-/**
- * Directly insert text into VS Code active selection
- */
-async function insertIntoVSCode() {
-  const textarea = inputBox.querySelector('.ai-bridge-input');
-  const insertBtn = inputBox.querySelector('.ai-bridge-insert');
-  const statusDiv = inputBox.querySelector('.ai-bridge-status');
-  const prompt = textarea.value.trim();
 
-  if (!selectedClientId) {
-    statusDiv.textContent = 'Please select a VS Code instance';
-    statusDiv.className = 'ai-bridge-status error';
-    return;
-  }
-
-  // Show loading
-  insertBtn.disabled = true;
-  statusDiv.textContent = 'Inserting into VS Code...';
-  statusDiv.className = 'ai-bridge-status loading';
-
-  try {
-    const pageContext = {
-      type: 'insert-code',
-      url: window.location.href,
-      title: document.title,
-      selectedText: selectedText.substring(0, 5000),
-      prompt: prompt || selectedText,
-      originalPrompt: prompt,
-      timestamp: new Date().toISOString(),
-      targetClientId: selectedClientId
-    };
-
-    const response = await fetch('http://localhost:3000/api/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(pageContext)
-    });
-
-    const result = await response.json();
-    if (result.success) {
-      statusDiv.textContent = 'Inserted into editor!';
-      statusDiv.className = 'ai-bridge-status success';
-      setTimeout(closeInputBox, 1000);
-    } else {
-      throw new Error(result.error || 'Insert failed');
-    }
-  } catch (error) {
-    Logger.error('Insert failed', { error: error.message });
-    statusDiv.textContent = `Error: ${error.message}`;
-    statusDiv.className = 'ai-bridge-status error';
-    insertBtn.disabled = false;
-  }
-}
 
 // ============================================================================
 // MESSAGE HANDLING
