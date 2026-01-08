@@ -916,7 +916,7 @@ function getUIPattern(element) {
  */
 function constructEnrichedPrompt(userPrompt, includeSystemRole = true) {
   const source = `${document.title.substring(0, 50)} (${window.location.hostname})`;
-  const route = window.location.pathname;
+  const route = window.location.pathname + (window.location.hash ? window.location.hash : '');
   const stack = getTechStack();
 
   // Clear, structured format
