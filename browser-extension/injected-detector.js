@@ -57,12 +57,39 @@
         // REACT / NEXT.JS DETECTION
         // ============================================================================
 
-        const IGNORED_COMPONENTS = new Set([
-            'SegmentViewNode', 'Router', 'LayoutRouter', 'RenderFromTemplateContext',
-            'ScrollAndFocusHandler', 'InnerLayoutRouter', 'RedirectErrorBoundary',
-            'ErrorBoundary', 'ClientPageRoot', 'RootLayout', 'AppContainer',
-            'NotFoundErrorBoundary', 'OuterLayoutRouter', 'ServerRoot'
-        ]);
+        // Pattern-based filtering for Next.js internal components
+        function isInternalComponent(compName) {
+            if (!compName || compName === 'Unknown') return true;
+
+            // Skip components with these patterns
+            const internalPatterns = [
+                'Boundary',           // ErrorBoundary, RedirectBoundary, etc.
+                'Provider',           // Context providers
+                'Context',            // React contexts
+                'Router',             // All router components
+                'Layout',             // Layout wrappers
+                'Handler',            // ScrollAndFocusHandler, etc.
+                'Internal',           // Any internal component
+                'Segment',            // SegmentViewNode, etc.
+                'Template',           // RenderFromTemplateContext
+                'ServerRoot',         // Server components root
+                'ClientPageRoot',     // Client page root
+                'AppContainer',       // App container
+                'Bailout'             // StaticGenerationSearchParamsBailoutProvider
+            ];
+
+            // Check if component name contains any internal pattern
+            if (internalPatterns.some(pattern => compName.includes(pattern))) {
+                return true;
+            }
+
+            // Skip components starting with underscore or lowercase
+            if (compName.startsWith('_') || /^[a-z]/.test(compName)) {
+                return true;
+            }
+
+            return false;
+        }
 
         function findReactSource(el) {
             const allKeys = Object.getOwnPropertyNames(el);
@@ -72,7 +99,7 @@
 
             let fiber = el[fiberKey];
             let depth = 0;
-            const maxDepth = 30;
+            const maxDepth = 50; // Search deep to find user components
             let bestCandidate = null;
             const detectedFramework = detectFramework();
             const isNextJs = detectedFramework === 'Next.js';
@@ -96,7 +123,7 @@
                     if (source) fiber = owner;
                 }
 
-                // PRIORITY 1: Exact source with file path
+                // PRIORITY 1: Exact source with file path (skip node_modules)
                 if (source && source.fileName && !source.fileName.includes('node_modules')) {
                     // For Next.js, verify the file is actually a Next.js file
                     const framework = (isNextJs && isNextJsFile(source.fileName)) ? 'Next.js' : detectedFramework || 'React';
@@ -112,23 +139,19 @@
                     };
                 }
 
-                // PRIORITY 2: Named component (for fallback)
-                if (typeof fiber.type === 'function' && compName && compName !== 'Unknown') {
-                    if (!IGNORED_COMPONENTS.has(compName) &&
-                        !compName.includes('Provider') &&
-                        !compName.includes('Context') &&
-                        !compName.startsWith('_')) {
-                        if (!bestCandidate) {
-                            bestCandidate = {
-                                framework: isNextJs ? 'Next.js' : (detectedFramework || 'React'),
-                                component: {
-                                    name: compName,
-                                    file: null,
-                                    line: null,
-                                    column: null
-                                }
-                            };
-                        }
+                // PRIORITY 2: Named component (for fallback) - but SKIP internal components
+                if (typeof fiber.type === 'function' && !isInternalComponent(compName)) {
+                    // Only set as best candidate if we don't have one yet
+                    if (!bestCandidate) {
+                        bestCandidate = {
+                            framework: isNextJs ? 'Next.js' : (detectedFramework || 'React'),
+                            component: {
+                                name: compName,
+                                file: null,
+                                line: null,
+                                column: null
+                            }
+                        };
                     }
                 }
 
