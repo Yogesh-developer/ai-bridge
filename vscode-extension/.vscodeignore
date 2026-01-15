@@ -1,17 +1,25 @@
-# Ignore everything except what we explicitly include
-*
 
-# Include server directory and its contents
-!server/
-!server/**
+# VS Code Extension Ignore File
+# Exclude files from the VSIX package
 
-# Include extension files
-!extension.js
-!package.json
-!README.md
-!LICENSE
-!CHANGELOG.md
-!icon.png
+.vscode/
+.git/
+.gitignore
+.github/
+**/*.map
 
-# Exclude node_modules from server
-server/node_modules/
+# Tests and Source Maps
+test/
+src/
+out/test/
+
+# Config Files
+tsconfig.json
+jsconfig.json
+.eslintrc.json
+.eslintrc.js
+webpack.config.js
+
+# Artifacts
+*.vsix
+*.log

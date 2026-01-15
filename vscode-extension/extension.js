@@ -12,6 +12,7 @@
 
 const vscode = require('vscode');
 const WebSocket = require('ws');
+const fs = require('fs');
 const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
@@ -547,14 +548,64 @@ async function activate(context) {
       }
     );
 
-    const logsCommand = vscode.commands.registerCommand(
-      'ai-bridge.showLogs',
-      () => {
-        logger.show();
+    const showLogsDisposable = vscode.commands.registerCommand('ai-bridge.showLogs', () => {
+      if (serverLogger) {
+        serverLogger.show();
       }
-    );
+    });
+    context.subscriptions.push(showLogsDisposable);
 
-    context.subscriptions.push(testCommand, connectCommand, reconnectCommand, logsCommand);
+    // -----------------------------------------------------------------------------------------
+    // START DEV COMMAND (UNIVERSAL FS PROXY)
+    // -----------------------------------------------------------------------------------------
+    const startDevDisposable = vscode.commands.registerCommand('ai-bridge.startDev', async () => {
+      if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+        vscode.window.showErrorMessage('AI Bridge: No workspace open.');
+        return;
+      }
+
+      const workspaceRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
+      const scriptPath = path.join(context.extensionPath, 'scripts', 'universal-injector.js');
+
+      if (!fs.existsSync(scriptPath)) {
+        vscode.window.showErrorMessage(`AI Bridge Error: Injector script not found at ${scriptPath}`);
+        return;
+      }
+
+      // DIRECT MODE: No popup. Just open the terminal with the environment set.
+      // The user will type the command themselves.
+
+      const terminalName = 'AI Bridge Terminal'; // Simple name since we don't know the command yet
+      const terminal = vscode.window.createTerminal({
+        name: terminalName,
+        env: {
+          // THE KEY: Preload universal-injector.js
+          NODE_OPTIONS: `--require "${scriptPath}"`,
+          NODE_ENV: 'development',
+          // Force color output if possible
+          FORCE_COLOR: '1'
+        }
+      });
+
+      terminal.show();
+      // terminal.sendText(buildCommand); // Removed: User types it manually
+
+      vscode.window.showInformationMessage(
+        '✅ AI Bridge Terminal Ready!\n' +
+        'Type your run command here (e.g. "npm run dev")'
+      );
+    });
+    context.subscriptions.push(startDevDisposable);
+
+    // Creates the "AI Dev" status bar button
+    const startDevStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    startDevStatusBar.command = 'ai-bridge.startDev';
+    startDevStatusBar.text = '$(rocket) AI Dev';
+    startDevStatusBar.tooltip = 'Start Dev Server with AI Bridge Injection';
+    startDevStatusBar.show();
+    context.subscriptions.push(startDevStatusBar);
+
+    context.subscriptions.push(testCommand, connectCommand, reconnectCommand);
 
     // Start embedded bridge server
     updateStatusBar('$(sync~spin) AI Bridge: Starting server...', 'Starting embedded bridge server');
@@ -796,6 +847,14 @@ async function handlePrompt(data) {
       remainingQuota: remaining
     });
 
+    // Feature: Auto-open source file if context is present
+    if (data.elementContext && data.elementContext.source && data.elementContext.source.component) {
+      logger.info('Found source context, attempting to open file...');
+      handleOpenSource(data.elementContext.source.component).catch(err => {
+        logger.warn('Failed to auto-open source file', { error: err.message });
+      });
+    }
+
     const prompt = data.prompt;
 
     if (data.type === 'insert-code') {
@@ -1011,6 +1070,83 @@ function deactivate() {
 
   extensionContext = null;
   logger.info('AI Bridge extension deactivated');
+}
+
+// ============================================================================
+// SOURCE FILE OPENING
+// ============================================================================
+
+async function handleOpenSource(component) {
+  if (!component) return;
+  // If we have a file, try that first. If not, fallback to name search.
+  if (!component.file && !component.name) return;
+
+  const { file, line, column, name } = component;
+  let doc = null;
+
+  try {
+    if (file) {
+      // Strategy 1: Try exact path (Absolute or Relative to Workspace Root)
+      const fileUri = vscode.Uri.file(file);
+      doc = await vscode.workspace.openTextDocument(fileUri);
+    }
+  } catch (e) {
+    logger.debug('Exact path open failed, trying smart resolution', { file });
+  }
+
+  // Strategy 2: Smart Resolution (Find by filename or component name)
+  if (!doc) {
+    let searchTerm = '';
+
+    if (file) {
+      // Extract filename from path (e.g. /path/to/App.js -> App.js)
+      searchTerm = path.basename(file);
+    } else if (name) {
+      // Use component name (e.g. Header -> Header)
+      // We will fuzzy match this
+      searchTerm = name;
+    }
+
+    if (searchTerm) {
+      logger.info('Smart resolution searching workspace...', { searchTerm });
+
+      // Try exact filename match first (Header.tsx)
+      let files = await vscode.workspace.findFiles(`**/${searchTerm}.{tsx,jsx,ts,js}`, '**/node_modules/**', 1);
+
+      // If no exact extension match, try generic partial match
+      if (files.length === 0) {
+        files = await vscode.workspace.findFiles(`**/${searchTerm}`, '**/node_modules/**', 1);
+      }
+
+      if (files.length > 0) {
+        logger.info('Smart resolution found file', { searchTerm, found: files[0].fsPath });
+        doc = await vscode.workspace.openTextDocument(files[0]);
+      }
+    }
+  }
+
+  if (doc) {
+    // Show document
+    const editor = await vscode.window.showTextDocument(doc, {
+      preview: true,
+      viewColumn: vscode.ViewColumn.One
+    });
+
+    // Reveal line
+    if (line) {
+      // VS Code lines are 0-indexed, source maps usually 1-indexed
+      const lineNum = Math.max(0, parseInt(line) - 1);
+      const colNum = column ? Math.max(0, parseInt(column)) : 0;
+
+      const range = new vscode.Range(lineNum, colNum, lineNum, colNum);
+      const selection = new vscode.Selection(lineNum, colNum, lineNum, colNum);
+
+      editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+      editor.selection = selection;
+    }
+  } else {
+    logger.warn('Could not find file in workspace', { file });
+  }
 }
 
 // ============================================================================

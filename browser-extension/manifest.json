@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AI Bridge - Web to IDE",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Securely send webpage content to VS Code via Alt+Click. Local processing only - your code never leaves your machine.",
   "author": "Yogesh Telange (yogesh.x.telange@gmail.com)",
   "icons": {

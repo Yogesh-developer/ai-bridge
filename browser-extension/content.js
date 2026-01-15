@@ -1,11 +1,18 @@
 /**
- * AI Bridge Content Script - Production v1.0.0
+ * AI Bridge - Browser Extension Content Script
+ * Captures element context and sends to VS Code for AI-powered development
  * 
- * Injected into web pages to capture clicks and send prompts to AI Bridge server
+ * Security: Only works on localhost/development URLs
+ * Trigger: Alt+Click or Cmd+Click on any element
  * 
- * Author: Yogesh Telange <yogesh.x.telange@gmail.com>
- * License: MIT
- * 
+ * @version 1.2.0
+ */
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+/**
  * Security Features:
  * - Input validation and length limits
  * - Localhost-only server communication
@@ -364,14 +371,16 @@ const retryHandler = new RetryHandler(3, 1000);
 // ============================================================================
 
 /**
- * Listen for Alt+Click to trigger AI Bridge
+ * Listen for Alt+Click (or Option+Click / Cmd+Click) to trigger AI Bridge
+ * Uses capture:true to ensure we handle the event before React/frameworks
  */
 document.addEventListener('click', (e) => {
-  // Only trigger if Alt key is pressed
-  if (!e.altKey) return;
+  // Trigger on Alt (Option) OR Meta (Command/Windows) key
+  if (!e.altKey && !e.metaKey) return;
 
   e.preventDefault();
   e.stopPropagation();
+  e.stopImmediatePropagation(); // Ensure no other listeners fire
 
   try {
     // SECURITY: Only allow on localhost/local development sites
@@ -417,28 +426,6 @@ Logger.info('AI Bridge v1.0.0 loaded - Alt+Click to activate');
 // ============================================================================
 
 /**
- * Extract element context (tag, class, id, HTML) for logging and prompt enrichment
- */
-function getElementContext(element) {
-  if (!element) return '';
-
-  try {
-    const clone = element.cloneNode(true);
-    let html = clone.outerHTML;
-
-    // Limit HTML size
-    if (html.length > 2000) {
-      html = html.substring(0, 2000) + '...(truncated)';
-    }
-
-    return html;
-  } catch (error) {
-    Logger.warn('getElementContext failed', { error: error.message });
-    return '';
-  }
-}
-
-/**
  * Show the input dialog box with prompt textarea and options
  */
 function showInputBox(x, y) {
@@ -447,7 +434,6 @@ function showInputBox(x, y) {
     inputBox.remove();
   }
 
-  const elementHTML = getElementContext(selectedElement);
   const elementInfo = selectedElement ?
     `<strong>Tag:</strong> &lt;${selectedElement.tagName.toLowerCase()}&gt; | <strong>ID:</strong> ${selectedElement.id || 'none'} | <strong>Class:</strong> ${selectedElement.className || 'none'}`
     : '';
@@ -489,7 +475,6 @@ function showInputBox(x, y) {
       </div>
       ${selectedText ? `<div class="ai-bridge-context">📝 <strong>Selected:</strong> ${SecurityValidator.escapeHtml(selectedText.substring(0, 100))}${selectedText.length > 100 ? '...' : ''}</div>` : ''}
       ${elementInfo ? `<div class="ai-bridge-context">🔍 ${elementInfo}</div>` : ''}
-      ${elementHTML ? `<details class="ai-bridge-html"><summary>📄 View HTML</summary><pre><code>${SecurityValidator.escapeHtml(elementHTML)}</code></pre></details>` : ''}
     </div>
     <div class="ai-bridge-footer">
       <textarea 
@@ -674,29 +659,100 @@ async function loadVSCodeInstances() {
   }
 }
 
+// ============================================================================
+// SOURCE FILE DETECTION (React/Vue/Svelte)
+// ============================================================================
+
+/**
+ * Detect which framework is being used on the page
+ * @returns {'React'|'Vue'|'Svelte'|'Unknown'}
+ */
+function detectFramework() {
+  if (frameworkCache) return frameworkCache;
+
+  try {
+    // React detection (check for React DevTools hook or React properties)
+    if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ||
+      window.React ||
+      document.querySelector('[data-reactroot]') ||
+      document.querySelector('[data-reactid]')) {
+      frameworkCache = 'React';
+      return 'React';
+    }
+
+    // Vue detection (check for Vue DevTools or Vue instance)
+    if (window.__VUE__ ||
+      window.Vue ||
+      document.querySelector('[data-v-app]') ||
+      document.querySelector('[data-v-]')) {
+      frameworkCache = 'Vue';
+      return 'Vue';
+    }
+
+    // Svelte detection (check for Svelte-specific attributes)
+    if (document.querySelector('[class*="svelte-"]') ||
+      document.querySelector('[data-svelte-h]')) {
+      frameworkCache = 'Svelte';
+      return 'Svelte';
+    }
+
+    // Angular detection (check for Angular global or elements)
+    if (window.getAllAngularRootElements ||
+      window.ng ||
+      document.querySelector('[ng-version]') ||
+      document.querySelector('app-root')) {
+      frameworkCache = 'Angular';
+      return 'Angular';
+    }
+
+    frameworkCache = 'Unknown';
+    return 'Unknown';
+  } catch (error) {
+    console.debug('[AI Bridge] Framework detection error:', error);
+    return 'Unknown';
+  }
+}
+/**
+ * Extract data-ai-loc from element or its children
+ * Searches element first, then children (breadth-first)
+ * @param {HTMLElement} element - Element to search
+ * @returns {string|null} - File:line format (e.g., "src/App.js:42") or null
+ */
+function extractSourceLocation(element) {
+  if (!element) return null;
+
+  // Check the element itself first
+  const loc = element.getAttribute('data-ai-loc');
+  if (loc) return loc;
+
+  // Search children (breadth-first to find closest match)
+  const children = Array.from(element.querySelectorAll('[data-ai-loc]'));
+  if (children.length > 0) {
+    return children[0].getAttribute('data-ai-loc');
+  }
+
+  return null;
+}
+
 /**
  * Get metadata for a specific element
  */
 function getElementMetadata(element = selectedElement) {
   if (!element) return null;
 
-
-  const elementHTML = element.outerHTML;
-
+  // Extract source location from data-ai-loc attribute
+  const sourceLocation = extractSourceLocation(element);
 
   return {
-    tag: element.tagName.toLowerCase(),
-    id: element.id || null,
-    className: element.className || null,
-    nearby: getNearbyContent(element),
-    pattern: getUIPattern(element),
-    html: elementHTML.substring(0, 1200)
+    sourceLocation: sourceLocation, // e.g., "src/App.js:42"
+    route: window.location.pathname, // Current route
+    stack: getTechStack() // Tech stack array
   };
 }
 
 /**
- * Detect the technology stack of the current page
- */
+   * Detect the technology stack of the current page
+   */
 function getTechStack() {
   const stack = new Set(); // Use Set to avoid duplicates
 
@@ -862,87 +918,54 @@ function getTechStack() {
     stack.add('TypeScript');
   }
 
-  return stack.size > 0 ? Array.from(stack).join(', ') : 'Vanilla JS/HTML';
-}
-
-/**
- * Get nearby noticeable text content (headings, labels)
- */
-function getNearbyContent(element) {
-  if (!element) return '';
-
-  // Look for previous heading
-  let sibling = element.previousElementSibling;
-  while (sibling) {
-    if (/^H[1-6]$/.test(sibling.tagName)) {
-      return `Nearby Heading: "${sibling.textContent.substring(0, 50)}"`;
-    }
-    sibling = sibling.previousElementSibling;
-  }
-
-  // Look for parent's previous heading (common in cards)
-  if (element.parentElement) {
-    let parentSibling = element.parentElement.previousElementSibling;
-    if (parentSibling && /^H[1-6]$/.test(parentSibling.tagName)) {
-      return `Section Heading: "${parentSibling.textContent.substring(0, 50)}"`;
-    }
-  }
-
-  // Look for associated label
-  if (element.id) {
-    const label = document.querySelector(`label[for="${element.id}"]`);
-    if (label) return `Label: "${label.textContent.trim()}"`;
-  }
-
-  return '';
-}
-
-/**
- * Detect common UI pattern context
- */
-function getUIPattern(element) {
-  const patterns = [];
-  if (element.closest('form')) patterns.push('Form');
-  if (element.closest('nav, header, [role="navigation"]')) patterns.push('Navigation');
-  if (element.closest('[role="dialog"], [class*="modal"]')) patterns.push('Modal/Dialog');
-  if (element.closest('table, [role="grid"]')) patterns.push('Data Table');
-  if (element.closest('ul, ol, [role="list"]')) patterns.push('List');
-
-  return patterns.join(', ');
+  return stack.size > 0 ? Array.from(stack) : ['Vanilla JS/HTML'];
 }
 
 /**
  * Construct a standardized, enriched prompt with context
  */
 function constructEnrichedPrompt(userPrompt, includeSystemRole = true) {
-  const source = `${document.title.substring(0, 50)} (${window.location.hostname})`;
-  const route = window.location.pathname + (window.location.hash ? window.location.hash : '');
-  const stack = getTechStack();
+  const ctx = getElementMetadata();
+  let prompt = '';
 
-  // Clear, structured format
-  let prompt = includeSystemRole ? 'Provide concise code/diffs only.\n' : '';
-  prompt += `Site: ${source}\n`;
-  prompt += `Route: ${route}\n`;
-  prompt += `Stack: ${stack}\n`;
-
-  // Single Element
-  const ctx = getElementMetadata(selectedElement);
-  if (ctx) {
-    prompt += `\nElement: <${ctx.tag}${ctx.id ? ' id="' + ctx.id + '"' : ''}${ctx.className ? ' class="' + ctx.className + '"' : ''}>\n`;
-    if (ctx.pattern) prompt += `Pattern: ${ctx.pattern}\n`;
-    if (ctx.nearby) prompt += `${ctx.nearby}\n`;
+  if (includeSystemRole) {
+    prompt = `Provide concise code/diffs only.\n`;
   }
 
+  // Site info
+  prompt += `Site: ${document.title || 'Web App'} (${window.location.hostname})\n`;
+  prompt += `Route: ${ctx?.route || window.location.pathname}\n`;
+  const stackDisplay = ctx?.stack ? (Array.isArray(ctx.stack) ? ctx.stack.join(', ') : ctx.stack) : 'Unknown';
+  prompt += `Stack: ${stackDisplay}\n\n`;
+
+
+  // Source location (file:line from data-ai-loc)
+  if (ctx?.sourceLocation) {
+    prompt += `Source: ${ctx.sourceLocation}\n\n`;
+  }
+
+  // Element info
+  if (selectedElement) {
+    prompt += `Element: <${selectedElement.tagName.toLowerCase()}`;
+    if (selectedElement.id) prompt += ` id="${selectedElement.id}"`;
+    if (selectedElement.className) prompt += ` class="${selectedElement.className.split(' ')[0]}"`;
+    prompt += `>\n\n`;
+
+    // If no source location found, show element HTML as fallback
+    if (!ctx?.sourceLocation && selectedElement) {
+      const elementHTML = selectedElement.outerHTML.substring(0, 500);
+      prompt += `HTML:\n${elementHTML}${selectedElement.outerHTML.length > 500 ? '...' : ''}\n\n`;
+    }
+  }
+
+  // Selected text or element context
   if (selectedText) {
-    prompt += `\nSelected Text:\n"${selectedText.substring(0, 1000)}"\n`;
-  } else if (ctx) {
-    prompt += `\nHTML:\n${ctx.html}\n`;
+    prompt += `Selected Text:\n"${selectedText.substring(0, 1000)}"\n\n`;
   }
 
-  prompt += `\nTask: ${userPrompt || 'Refactor this code'}`;
+  prompt += `Task: ${userPrompt || 'Refactor this code'}`;
 
   return prompt;
-
 }
 
 /**
