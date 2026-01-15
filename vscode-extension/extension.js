@@ -488,6 +488,15 @@ function stopBridgeServer() {
 // ============================================================================
 
 async function activate(context) {
+  // 1. Setup Status Bar (Immediate Feedback)
+  // Moved here to ensure it appears even if other activation steps fail
+  const startDevStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  startDevStatusBar.command = 'ai-bridge.startDev';
+  startDevStatusBar.text = '$(rocket) AI Dev';
+  startDevStatusBar.tooltip = 'Start Dev Server with AI Bridge Injection';
+  startDevStatusBar.show();
+  context.subscriptions.push(startDevStatusBar);
+
   logger.info('╔════════════════════════════════════════╗');
   logger.info('║   AI BRIDGE EXTENSION ACTIVATING      ║');
   logger.info('╚════════════════════════════════════════╝');
@@ -597,13 +606,7 @@ async function activate(context) {
     });
     context.subscriptions.push(startDevDisposable);
 
-    // Creates the "AI Dev" status bar button
-    const startDevStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-    startDevStatusBar.command = 'ai-bridge.startDev';
-    startDevStatusBar.text = '$(rocket) AI Dev';
-    startDevStatusBar.tooltip = 'Start Dev Server with AI Bridge Injection';
-    startDevStatusBar.show();
-    context.subscriptions.push(startDevStatusBar);
+
 
     context.subscriptions.push(testCommand, connectCommand, reconnectCommand);
 

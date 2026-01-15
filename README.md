@@ -8,42 +8,37 @@ AI Bridge allows you to instantly send webpage content, code snippets, and conte
 
 ---
 
-## v1.0.0 Highlights
+## v1.2.x Highlights
 
-- **Instant Context**: Alt+Click on any element to capture its HTML, selected text, and page information.
-- **VS Code Automation**: Automatically opens the chat interface and pastes your prompt into VS Code.
-- **Security and Privacy**: 
-    - 100% Localhost-only communication.
-    - No data leaves your local machine.
-    - Embedded server that manages itself in the background.
-- **Smart Singleton**: Multiple VS Code windows automatically share a single server instance to prevent resource conflicts.
+- **Universal Injector**: No manual configuration required. Automatically injects source location data using a zero-config FS proxy.
+- **Status Bar Integration**: Single-click activation via the `$(rocket) AI Dev` button in VS Code.
+- **Smart Tech Stack Detection**: Automatically identifies React, Angular, Vue, and Svelte components.
+- **Multi-Terminal Support**: Run multiple dev servers concurrently; AI Bridge manages terminals intelligently.
+- **Security & Privacy**: 100% local communication. No data ever leaves your machine.
 
 ---
 
 ## Quick Start
 
 ### 1. Install VS Code Extension
-1. Download [ai-bridge-vscode-1.0.0.vsix](vscode-extension/ai-bridge-vscode-1.0.0.vsix).
-2. Open VS Code.
-3. Use the command `Extensions: Install from VSIX`.
-4. Select the .vsix file and restart VS Code.
-5. You should see "AI Bridge: Connected" in your status bar.
+1. Download `ai-bridge-vscode-1.2.4.vsix`.
+2. In VS Code, run command `Extensions: Install from VSIX...`
+3. Restart or reload VS Code.
+4. Click the **`$(rocket) AI Dev`** button in the bottom status bar to begin.
 
 ### 2. Install Browser Extension
-1. Open chrome://extensions.
-2. Enable "Developer mode" in the top right.
-3. Click "Load unpacked".
-4. Select the browser-extension folder.
+1. Open `chrome://extensions`.
+2. Enable "Developer mode".
+3. Click "Load unpacked" and select the `browser-extension` folder.
 
 ---
 
 ## How to Use
 
-1. **Alt + Click** anywhere on a webpage to open the AI Bridge popup.
-2. The popup captures the element's HTML and any text you have highlighted.
-3. Type your prompt.
-4. **Send to VS Code**: This will open the AI chat in your active VS Code window.
-5. **Copy (Header Icon)**: Copies formatted context to your clipboard for manual use.
+1. Click the **AI Dev Rocket** in VS Code to open a terminal.
+2. Run your dev command (e.g., `npm run dev`).
+3. In your browser (localhost), hold **Alt** (or Option) and **Click** any UI element.
+4. Type your prompt in the popup and send it back to VS Code!
 
 ---
 

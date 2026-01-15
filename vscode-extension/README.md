@@ -6,25 +6,24 @@ Connect your web browser directly to VS Code with Alt+Click.
 
 AI Bridge is a productivity tool designed to streamline the workflow between web research and AI-assisted coding. It eliminates the friction of manual copying and pasting by establishing a direct link between your browser and the VS Code AI chat interface.
 
-## Highlights in v1.0.0
+## Highlights in v1.2.x
 
-- **Embedded Bridge Server**: The server is now fully integrated into the extension and manages its own lifecycle. It starts and stops automatically with VS Code.
-- **Improved Automation**: Optimized discovery of native VS Code AI extensions, including GitHub Copilot, for seamless prompt delivery.
-- **Context Preservation**: Automatically captures HTML structure, selected text, and page URLs to provide high-quality context for AI prompts.
-- **Security and Privacy**: All data processing is strictly local. No information is transmitted to external servers.
+- **`$(rocket) AI Dev` Status Bar**: One-click activation to start your development server with AI Bridge enabled.
+- **Universal Injector (FS Proxy)**: Automatically maps runtime elements to source files without any configuration changes to your project.
+- **Multi-Terminal Flow**: Opens a dedicated terminal for your dev server, allowing you to run multiple instances without closing existing ones.
+- **Embedded Bridge Server**: Managed automatically by the extension; no manual server setup required.
 
 ## Installation
 
-1. Install this VS Code extension.
-2. Install the companion browser extension from the Chrome Web Store or load it as an unpacked extension.
-3. The server will start automatically upon extension activation.
+1. Install the `ai-bridge-vscode-1.2.4.vsix` package.
+2. Click the **AI Dev** rocket icon in the status bar to activate.
 
 ## Usage
 
-1. Open any webpage.
-2. Hold the Alt key and click on any text or element.
-3. Type your prompt in the dialog.
-4. Send the content directly to your VS Code AI chat.
+1. Click the **AI Dev** button in your VS Code status bar.
+2. A terminal will open; run your web server command (e.g., `npm run dev` or `vite`).
+3. Hold **Alt** and click elements in your browser.
+4. Prompt the AI, and it will receive the exact file and line number of the component you clicked.
 
 ## Settings
 
