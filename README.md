@@ -44,7 +44,7 @@ AI Bridge allows you to instantly send webpage content, code snippets, and conte
 
 ## Architecture
 
-AI Bridge uses a Smart Singleton architecture. The first VS Code window to start up launches an embedded Node.js server on ports 3000 and 3001. Subsequent windows detect the active server and connect to it automatically. The browser extension communicates with this local bridge via secure HTTP and WebSockets.
+AI Bridge uses a Smart Singleton architecture. The first VS Code window to start up launches an embedded Node.js server on ports 54321 and 54322. Subsequent windows detect the active server and connect to it automatically. The browser extension communicates with this local bridge via secure HTTP and WebSockets.
 
 ---
 

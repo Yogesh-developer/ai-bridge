@@ -31,8 +31,8 @@ const MAX_CONNECTION_ATTEMPTS = 3;
 const RECONNECT_DELAY = 2000;
 const MAX_PROMPT_LENGTH = 50000;
 const SERVER_STARTUP_TIMEOUT = 10000; // 10 seconds
-const DEFAULT_HTTP_PORT = 3000;
-const DEFAULT_WS_PORT = 3001;
+const DEFAULT_HTTP_PORT = 54321;
+const DEFAULT_WS_PORT = 54322;
 
 // ============================================================================
 // EXTENSION STATE
@@ -256,6 +256,13 @@ class Logger {
   warn(message, data = {}) { this.log('warn', message, data); }
   error(message, data = {}) { this.log('error', message, data); }
   show() { this.channel.show(); }
+
+  dispose() {
+    if (this.channel) {
+      this.channel.dispose();
+      this.channel = null;
+    }
+  }
 }
 
 const logger = new Logger('Extension');
@@ -1071,8 +1078,27 @@ function deactivate() {
     }
   }
 
+  // Dispose of loggers to prevent multiple output channels
+  if (serverLogger) {
+    try {
+      serverLogger.dispose();
+      serverLogger = null;
+    } catch (error) {
+      console.error('Error disposing server logger:', error);
+    }
+  }
+
   extensionContext = null;
   logger.info('AI Bridge extension deactivated');
+
+  // Dispose main logger last
+  if (logger) {
+    try {
+      logger.dispose();
+    } catch (error) {
+      console.error('Error disposing main logger:', error);
+    }
+  }
 }
 
 // ============================================================================

@@ -36,7 +36,7 @@ Configuration options are available under `Preferences > Settings > AI Bridge`:
 ## Troubleshooting
 
 - **Connection issues**: Verify the bridge status in the bottom right of the status bar. If it shows an error, check the "AI Bridge: Server" output channel.
-- **Activation failures**: Ensure that ports 3000 and 3001 are not being used by other applications. Use the `kill-servers.sh` script if necessary.
+- **Activation failures**: Ensure that ports 54321 and 54322 are not being used by other applications. Use the `kill-servers.sh` script if necessary.
 - **Alt+Click behavior**: If the dialog does not appear, refresh the webpage or check if the browser extension is enabled.
 
 ## Privacy

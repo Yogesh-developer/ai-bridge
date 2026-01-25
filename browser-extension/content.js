@@ -590,7 +590,7 @@ async function loadVSCodeInstances() {
     await retryHandler.execute(
       async () => {
         const response = await Promise.race([
-          fetch('http://localhost:3000/api/clients'),
+          fetch('http://localhost:54321/api/clients'),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Request timeout')), 5000)
           )
@@ -1031,7 +1031,7 @@ async function sendToAI() {
     await retryHandler.execute(
       async () => {
         const response = await Promise.race([
-          fetch('http://localhost:3000/api/send', {
+          fetch('http://localhost:54321/api/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(pageContext)

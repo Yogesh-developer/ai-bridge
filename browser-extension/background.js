@@ -1,6 +1,6 @@
 // Background service worker - Handles communication with bridge server
 
-const BRIDGE_SERVER_URL = 'http://localhost:3000';
+const BRIDGE_SERVER_URL = 'http://localhost:54321';
 let serverStatus = 'unknown'; // unknown, connected, disconnected
 
 // Check server status on startup

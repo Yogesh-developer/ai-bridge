@@ -3,15 +3,15 @@
 # AI Bridge - Kill Existing Servers Script
 # Use this to stop any running bridge servers before testing the new extension
 
-echo "Checking for processes on ports 3000 and 3001..."
+echo "Checking for processes on ports 54321 and 54322..."
 
-# Find processes on port 3000
-PIDS_3000=$(lsof -ti:3000 2>/dev/null)
-# Find processes on port 3001  
-PIDS_3001=$(lsof -ti:3001 2>/dev/null)
+# Find processes on port 54321
+PIDS_54321=$(lsof -ti:54321 2>/dev/null)
+# Find processes on port 54322
+PIDS_54322=$(lsof -ti:54322 2>/dev/null)
 
-if [ -z "$PIDS_3000" ] && [ -z "$PIDS_3001" ]; then
-    echo "No processes found on ports 3000 or 3001"
+if [ -z "$PIDS_54321" ] && [ -z "$PIDS_54322" ]; then
+    echo "No processes found on ports 54321 or 54322"
     exit 0
 fi
 

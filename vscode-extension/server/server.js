@@ -23,8 +23,8 @@ const cors = require('cors');
 const WebSocket = require('ws');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const WS_PORT = process.env.WS_PORT || 3001;
+const PORT = process.env.PORT || 54321;
+const WS_PORT = process.env.WS_PORT || 54322;
 
 // ============================================================================
 // SECURITY & VALIDATION CLASSES
